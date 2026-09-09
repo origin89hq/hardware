@@ -1,0 +1,10 @@
+# Fabrication exports and CAD are not reviewable text.
+*.pdf binary
+*.step filter=lfs diff=lfs merge=lfs -text
+*.dxf binary
+*.zip binary
+*.xlsx binary
+*.xls binary
+*.epro2 binary
+*.eprj2 binary
+*.ttf binary

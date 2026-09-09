@@ -1,0 +1,26 @@
+# Checks the committed Gerber set against the copper rules only the artwork can
+# witness: the mounting-hole keep-outs and the antenna void, as the board's
+# gerber-rules.json names them. It is red until an export passes; a red check
+# here is the finding, not a nuisance.
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gerbers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: pip install gerbonara shapely
+      - run: python tools/validate_gerbers.py boards/controller-a/gerber-rules.json "boards/controller-a/build/2026-09-09/gerber.zip"

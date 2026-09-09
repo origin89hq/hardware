@@ -1,0 +1,27 @@
+{
+  "board": "controller-a",
+  "frame": "100 x 125 mm, origin at the board centre (A-01)",
+  "mounting_holes": {
+    "rule": "A-02",
+    "drill": 3.2,
+    "keepout_radius": 3.2,
+    "centres": [[-46, 58.5], [46, 58.5], [46, -58.5], [-46, -58.5]]
+  },
+  "voids": [
+    {
+      "rule": "A-15",
+      "label": "antenna band above y=52.5, where the accepted routing's void begins",
+      "rect": [-50, 52.5, 50, 62.5]
+    }
+  ],
+  "copper_layers": [
+    ["L1 top", "Gerber_TopLayer.GTL"],
+    ["L2 gnd", "Gerber_InnerLayer1.G1"],
+    ["L3 pwr", "Gerber_InnerLayer2.G2"],
+    ["L4 bottom", "Gerber_BottomLayer.GBL"]
+  ],
+  "silk_layers": [
+    ["top silk", "Gerber_TopSilkscreenLayer.GTO"],
+    ["bottom silk", "Gerber_BottomSilkscreenLayer.GBO"]
+  ]
+}

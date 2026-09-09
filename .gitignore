@@ -1,0 +1,6 @@
+enclosure/out/
+__pycache__/
+*.pyc
+*.FCStd
+*.FCBak
+.DS_Store
