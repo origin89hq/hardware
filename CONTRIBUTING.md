@@ -29,6 +29,11 @@ Create a Python 3.12 virtual environment and install `requirements-dev.txt`
 with `python -m pip install --require-hashes -r requirements-dev.txt`. CI uses the same pins.
 
 Dependency updates start in `requirements-dev.in`; regenerate the hash-locked
-`requirements-dev.txt` with `uv pip compile requirements-dev.in --python-version
-3.12 --generate-hashes --universal --no-header -o requirements-dev.txt`.
+`requirements-dev.txt` from the repository root:
+
+```sh
+uv pip compile requirements-dev.in --python-version 3.12 \
+  --generate-hashes --universal --no-header -o requirements-dev.txt
+```
+
 Update the export selected by `just gerbers` when filing a reviewed board revision.
