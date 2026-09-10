@@ -14,3 +14,21 @@ the directory, fixes the names, and refuses to change a file that is already
 filed. Export the schematic PDF with it. Then run the Gerber check and put
 the result, pass or the rule numbers that failed, in the board README's
 revision table.
+
+## Development setup
+
+Follow the [Origin89 engineering standards](https://github.com/origin89hq/engineering)
+for working practices, tests, writing, and commits. `AGENTS.md` loads shared
+skills at the start of a task; `just skills-sync` refreshes them from engineering.
+Keep local constraints and domain-specific checks alongside those shared rules.
+
+Install just 1.58.0 and Python 3.9+ for the skill bootstrap. Run `just --list`
+for repository commands and `just check` before opening a pull request.
+
+Create a Python 3.12 virtual environment and install `requirements-dev.txt`
+with `python -m pip install --require-hashes -r requirements-dev.txt`. CI uses the same pins.
+
+Dependency updates start in `requirements-dev.in`; regenerate the hash-locked
+`requirements-dev.txt` with `uv pip compile requirements-dev.in --python-version
+3.12 --generate-hashes --universal --no-header -o requirements-dev.txt`.
+Update the export selected by `just gerbers` when filing a reviewed board revision.
