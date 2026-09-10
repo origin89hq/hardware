@@ -8,3 +8,4 @@ __pycache__/
 /.origin89/engineering/
 /.agents/skills/origin89-*
 /.venv/
+/.claude/skills/origin89-*
