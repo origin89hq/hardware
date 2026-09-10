@@ -1,0 +1,4 @@
+# Board validation and EasyEDA export import.
+gerbonara==1.6.3
+shapely==2.1.2
+openpyxl==3.1.5
