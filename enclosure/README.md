@@ -11,5 +11,6 @@ freecadcmd enclosure/shoe.py      # writes enclosure/out/board-{a,b}-{plate,shoe
 freecadcmd enclosure/artwork.py   # writes enclosure/out/artwork-*.{svg,png}
 ```
 
-Printing waits on a measured board. The website's renders of the enclosure
-are made from these outputs in the code repository, not here.
+Printing waits on a measured board. [`blender/`](blender/) holds the
+presentation scene built from these outputs and board A's STEP, which the
+website renders from; [`render/`](render/) is the chain that builds it.

@@ -8,3 +8,4 @@
 *.epro2 binary
 *.eprj2 binary
 *.ttf binary
+*.blend filter=lfs diff=lfs merge=lfs -text
