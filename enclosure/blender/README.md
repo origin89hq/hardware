@@ -58,9 +58,9 @@ writes a JSON file with its camera, controls and projected light-pipe
 position. Cable detail, connector inspection, harness and wiring use a 16:10
 frame.
 
-The website renders its controller images from this file with its own scripts
-in [origin89hq/website](https://github.com/origin89hq/website) and records the
-file's SHA-256 beside them.
+The website's Controller film, stills and 3D model are rendered from this file
+by the scripts in [`web/`](web/); the website records the file's SHA-256 beside
+them.
 
 ## Cable presentation
 
