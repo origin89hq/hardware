@@ -9,3 +9,6 @@ __pycache__/
 /.agents/skills/origin89-*
 /.venv/
 /.claude/skills/origin89-*
+enclosure/render/work/
+enclosure/blender/previews/
+*.blend1
