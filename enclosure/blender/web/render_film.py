@@ -328,14 +328,18 @@ def main():
     bake(plate, 'location', lambda x: z0 + plate_mm(x) * MM, index=2)
 
     product = bpy.data.objects['Product | move or rotate the whole controller']
+    # The spin and flip are relative to the product's saved placement. STATIONS and ANCHORS
+    # frame the scene's default placement at the origin.
+    base_location = product.location.copy()
+    base_rotation = product.rotation_euler.to_quaternion()
     product.rotation_mode = 'QUATERNION'
     spin, flip, rise = monotone(SPIN_DEG), monotone(FLIP_DEG), monotone(FLIP_RISE_MM)
     centre = Vector(PRODUCT_CENTRE_MM) * MM
 
     def turn(x):
         return Quaternion((0, 0, 1), math.radians(spin(x))) @ Quaternion(FLIP_AXIS, math.radians(flip(x)))
-    bake(product, 'rotation_quaternion', turn)
-    bake(product, 'location', lambda x: centre + Vector((0, 0, rise(x) * MM)) - turn(x) @ centre)
+    bake(product, 'rotation_quaternion', lambda x: base_rotation @ turn(x))
+    bake(product, 'location', lambda x: base_location + base_rotation @ (centre + Vector((0, 0, rise(x) * MM)) - turn(x) @ centre))
 
     trace_sweep()
     antenna_glow()
