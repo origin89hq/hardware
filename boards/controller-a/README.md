@@ -1,6 +1,6 @@
 # Origin89 Controller, board A
 
-![Development stage](https://img.shields.io/badge/development%20stage-prototype-orange.svg) First revision fabricated. On the bench since 2026-09-14: the internal circuits, RS-485, three DS18B20s, the RTC cell and the ESP32's radio receive work; board B's interlock waits on a board B wiring fault.
+![Development stage](https://img.shields.io/badge/development%20stage-prototype-orange.svg) First revision fabricated. On the bench since 2026-09-14: SWD, both crystals, the RTC and its backup cell, FRAM, NOR, CAN in loopback, the analogue inputs, the watchdog, RS-485 across all three channels, three DS18B20s and the ESP32's radio receive all pass. Switching the ESP32 rail after ten minutes off corrupted the MCU 22 times out of 22 and is open; brown-out is unmeasured; board B's interlock waits on a board B wiring fault.
 
 This is the board that makes the decisions. An STM32G0B1 runs the control
 logic; an ESP32-C6 module carries the radio; three RS-485 channels, one CAN
