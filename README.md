@@ -15,7 +15,7 @@ this repository holds what was drawn from it and what a fab needs.
 | --- | --- | --- |
 | [Controller, board A](boards/controller-a/) | prototype: revision A on the bench, the radios receive, board B's interlock not yet proven | EasyEDA source, Gerbers, BOM, pick-and-place, STEP, DXF, fabrication drawing |
 | [Generator, board B](boards/generator-b/) | prototype: five boards assembled; on the bench, its relay chains cannot close as built | EasyEDA source, Gerbers, BOM, pick-and-place, STEP, DXF |
-| [Enclosure](enclosure/) | drawn, printing waits on a measured board | FreeCAD source |
+| [Enclosure](enclosure/) | drawn, printing waits on a measured board | FreeCAD source, Blender presentation scene |
 
 Nothing here is a validated product. A board that has been fabricated has not
 necessarily been measured, and one that has been measured has not been
