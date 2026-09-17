@@ -19,6 +19,12 @@ neither the contact nor `FEEDBACK` can close ([bench log](bench/2026-09-14.md)).
 The relay rows and the chains below give Omron's pinout; the copper does not
 follow it yet.**
 
+**Bench, 2026-09-17: the rework works. Four links per board, `4` to `6` and
+`13` to `11` on K1 and on K2, close both chains, and the interlock then passes
+end to end: 68 sequences with no failures, the contact opening 4.34 s after the
+last kick against a 3.0-6.5 s specification ([bench log](bench/2026-09-17.md)).
+Revision B should fix the footprint so the chains run through the commons.**
+
 ---
 
 ## What it is, in one paragraph
