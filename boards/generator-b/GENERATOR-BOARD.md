@@ -13,6 +13,12 @@ pours, DRC empty, CN9 pins and test pads named on the silkscreen; five
 boards ordered from JLCPCB, assembled, SMD and through-hole alike. Bench
 proof happens on those boards, not on a breadboard.**
 
+**Bench, 2026-09-14: the relays switch, but on these boards both relay chains
+use each pole's NC and NO terminals and leave the commons unconnected, so
+neither the contact nor `FEEDBACK` can close ([bench log](bench/2026-09-14.md)).
+The relay rows and the chains below give Omron's pinout; the copper does not
+follow it yet.**
+
 ---
 
 ## What it is, in one paragraph
@@ -35,13 +41,17 @@ what it commanded.
 | **CN9 link** | CN9 `B5P-VH` · D1–D3 `SMAJ15A` · R1, R2 100 k | Five wires from Board A (`V12`, `GND`, `GEN_RUN_CMD`, `GEN_WDT_KICK`, `GEN_STATUS` on that side): `+12V`, `GND`, `RUN`, `KICK`, `FEEDBACK`. A TVS on the rail and on each logic line, and a 100 k pull-down on `RUN` and `KICK`; an unplugged cable reads *stop*, never floats |
 | **3.3 V** | U1 `HT7533-1` · C1 100 n · C2 10 µ | The only rail the logic needs; 28 V-rated input so the 12 V bank's transients do not reach a 6 V part |
 | **Watchdog** | U2 `74HC123D` · R3 1 M · C3 10 µ · C4 100 n | Monostable 1: `KICK` rising edge on 1B retriggers it, `RUN` on 1RD# holds it reset while low, Q on `WD_OK`. Pulse width ≈ 0.45 · R3 · C3 ≈ **4.5 s**. The output is a level, not a pulse: high while kicks keep coming, low a few seconds after they stop, high again at the next kick. Monostable 2 is parked (2A# high, 2B and 2RD# low) |
-| **Relay A** | Q1 `AO3400A` · K1 `G5V-2-DC12` · D4 `1N4148W` · LED1 + R5 | Coil driven by `WD_OK`. Pole 1 (COM 6 → NO 8) is the first series contact; pole 2 (COM 11 → NO 9) is the first feedback contact |
-| **Relay B** | Q2 `AO3400A` · K2 `G5V-2-DC12` · D5 `1N4148W` · LED2 + R6 | Coil driven by `RUN`. Pole 1 (COM 6 → NO 8) is the second series contact; pole 2 the second feedback contact, whose NO reaches `FEEDBACK` |
+| **Relay A** | Q1 `AO3400A` · K1 `G5V-2-DC12` · D4 `1N4148W` · LED1 + R5 | Coil driven by `WD_OK`. Pole 1 (COM 4 → NO 8) is the first series contact; pole 2 (COM 13 → NO 9) is the first feedback contact. The first boards use NC 6 and NC 11 in place of the commons (bench, 2026-09-14) |
+| **Relay B** | Q2 `AO3400A` · K2 `G5V-2-DC12` · D5 `1N4148W` · LED2 + R6 | Coil driven by `RUN`. Pole 1 (COM 4 → NO 8) is the second series contact; pole 2 (COM 13 → NO 9) the second feedback contact, whose NO reaches `FEEDBACK`. Same fault on the first boards |
 | **Output** | CN10 `KF2EDGR-5.08-2P` · F1 5 × 20 fuse holder · D6 `SMBJ30CA` | The 18/2 pair to the generator. Fuse on `GEN_A`, bidirectional 30 V TVS across the pair at the terminal |
 
-Contact chain: `CN10.1 → F1 → K1 COM6/NO8 → K2 COM6/NO8 → CN10.2`. Feedback
-chain: `GND → K1 COM11/NO9 → K2 COM11/NO9 → CN9.5`, so Board A (which pulls
-`FEEDBACK` up) reads low only when both relays are physically closed. The
+Contact chain: `CN10.1 → F1 → K1 COM4/NO8 → K2 COM4/NO8 → CN10.2`. Feedback
+chain: `GND → K1 COM13/NO9 → K2 COM13/NO9 → CN9.5`, so Board A (which pulls
+`FEEDBACK` up) reads low only when both relays are physically closed. Omron's
+G5V-2 terminal arrangement (bottom view): coil 1 and 16, pole 1 COM 4 / NC 6 /
+NO 8, pole 2 COM 13 / NC 11 / NO 9. The first boards' copper runs the chains
+through pins 6/8 and 11/9, NC to NO, with 4 and 13 unconnected; neither chain
+closes. Proposed rework, not yet tried: link 4 to 6 and 13 to 11 on each relay. The
 LEDs sit across each relay's coil drive, so they show what the coil got, which
 is what the bench wants to see.
 
@@ -162,6 +172,9 @@ bench proves a case the simulator already reproduces.
 
 ## Still open
 
+- **The relay commons** — the first boards cannot close either chain (see the
+  relay rows). Rework the five boards or respin; then repeat step 7. See the
+  [bench log](bench/2026-09-14.md).
 - **The site's own input** — open-circuit voltage and short-circuit current on
   the GenStart 2-wire harness, a meter and a minute
   (the [controller design](https://docs.origin89.com/hardware/), "Still to confirm with GenStart").
