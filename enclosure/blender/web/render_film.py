@@ -1,16 +1,21 @@
-"""Render the website hero film: a 49 s loop (1176 frames at 24 fps) of the detailed Controller.
+"""Render the website hero film: a 48 s loop (1440 frames at 30 fps) of the detailed Controller.
 
 Runs on the scene saved by build_detailed_board.py, which Blender opens first:
 
     blender --background --python-exit-code 1 /tmp/home-media/controller-detailed.blend \\
       --python enclosure/blender/web/render_film.py -- --out /tmp/home-media/film
 
-Shots: reveal, lift, trace sweep, STM32 orbit, ESP32 antenna, RS-485 track,
-exploded turn, reassemble. The last frame matches the first, so the video loops
-without a jump. Writes transparent RGBA frame-NNNN.png files and anchors.json
-(per-frame callout positions as 0-1 fractions of the frame, from the render
-camera). Existing frames are skipped, so an interrupted render resumes. The
-scene file is not saved.
+One camera moves without cuts along periodic curves through STATIONS: the
+closed Controller, the cover lifting, the ESP32-C6 antenna, a light sweep along
+the top copper, the STM32G0B1, the RS-485 transceivers, the exploded view
+turning a full circle, reassembly and a forward flip that lands on the first
+frame, so the video loops without a seam. The cover, plate, product and lights
+move along monotone curves between their states instead of switching, and the
+render uses motion blur. Writes transparent RGBA frame-NNNN.png files and
+anchors.json (per-frame callout positions as 0-1 fractions of the frame, from
+the render camera, and the window in which each callout is shown). Existing
+frames are skipped, so an interrupted render resumes. The scene file is not
+saved.
 """
 import argparse
 import json
@@ -20,10 +25,12 @@ from pathlib import Path
 
 import bpy
 from bpy_extras.object_utils import world_to_camera_view
-from mathutils import Vector
+from mathutils import Quaternion, Vector
 
 MM = .001
-FPS = 24
+FPS = 30
+SECONDS = 48
+LENGTH = FPS * SECONDS
 
 ANCHORS = {
     'cn': (-8., -53.6, 9.),
@@ -33,23 +40,56 @@ ANCHORS = {
     'board': (0., 0., 1.7),
 }
 
-# name: (start, end, keys[(frame, camera mm, aim mm, lens, f-stop)])
-SHOTS = {
-    'reveal': (1, 120, [(1, (-300, -560, 190), (-40, -6, 12), 60, 11), (120, (-250, -500, 215), (-36, -4, 14), 60, 11)]),
-    'lift': (121, 264, [(121, (-190, -380, 300), (0, -4, 30), 52, 11), (200, (-130, -270, 330), (0, 0, 10), 50, 11), (264, (-95, -210, 330), (4, 0, 4), 48, 11)]),
-    'sweep': (265, 408, [(265, (-30, -150, 120), (-6, -44, 2), 40, 16), (408, (10, 70, 150), (0, 30, 2), 40, 16)]),
-    'u7': (409, 552, [(409, (70, -40, 52), (18.4, -.3, 3.1), 70, 18), (480, (58, -62, 50), (17.8, .2, 3.1), 70, 18), (552, (36, -74, 48), (17.2, .8, 3.1), 70, 18)]),
-    'u8': (553, 696, [(553, (34, 4, 64), (-3.4, 42, 5), 58, 20), (696, (10, 26, 58), (-5.6, 51, 3.5), 58, 20)]),
-    'rs485': (697, 840, [(697, (-60, -12, 56), (-22, -41, 3), 50, 18), (840, (0, -10, 58), (8, -44, 3), 50, 18)]),
-    'explode': (841, 1032, [(841, (-300, -540, 300), (0, 0, 34), 44, 11), (1032, (-270, -500, 280), (0, 0, 30), 44, 11)]),
-    'assemble': (1033, 1176, [(1033, (-270, -500, 280), (0, 0, 30), 44, 11), (1176, (-300, -560, 190), (-40, -6, 12), 60, 11)]),
+# Camera stations: (seconds, aim mm, azimuth deg, elevation deg, distance mm, lens mm, f-stop).
+# Periodic curves pass through every station, so the camera never cuts or stops and the last
+# frame leads into the first. Azimuth is measured from +X; the terminal edge
+# faces -Y.
+STATIONS = [
+    (0.0, (-40, -6, 12), -118, 16, 650, 60, 11),      # closed Controller, right of the hero copy
+    (3.5, (-26, -6, 18), -114, 22, 560, 57, 11),
+    (7.5, (-6, -8, 30), -108, 31, 460, 52, 11),       # cover lifting, terminals in view
+    (10.5, (-4, 14, 14), -96, 44, 300, 48, 12),       # over the board as the cover leaves the frame
+    (13.5, (-3.5, 43, 4.5), -64, 50, 95, 56, 19),     # ESP32-C6 antenna
+    (16.5, (-5.6, 51, 3.5), -46, 58, 68, 58, 20),
+    (18.5, (-2, 30, 2), -70, 55, 190, 42, 15),        # light sweep along the top copper
+    (22.0, (2, -14, 2), -92, 50, 180, 42, 15),
+    (24.5, (18.2, -.4, 3.1), -98, 40, 92, 64, 18),    # STM32G0B1, orbiting away from the white headers
+    (28.0, (17.4, .6, 3.1), -128, 37, 86, 68, 18),
+    (29.5, (0, -20, 3), -120, 58, 150, 52, 17),
+    (31.0, (-24, -35, 3), -102, 68, 84, 50, 18),      # RS-485 transceivers, from above the terminal row
+    (34.5, (6, -37, 3), -84, 66, 78, 50, 18),
+    (39.5, (0, 0, 36), -118, 26, 660, 44, 11),        # exploded view turning
+    (44.0, (0, 0, 26), -124, 22, 640, 48, 11),        # reassembly and flip
+]
+
+# Callout windows in seconds. HeroFilm.tsx shows a callout only inside its window.
+WINDOWS = {
+    'reveal': (0, 5), 'lift': (5.8, 10.2), 'u8': (13.6, 17.2), 'sweep': (18.4, 22.4),
+    'u7': (24.6, 28.8), 'rs485': (30.9, 34.8), 'explode': (35.5, 43), 'assemble': (43, 48),
 }
-LENGTH = 1176
-KEY_LIGHT = {
-    'reveal': (-.30, .26, .34), 'lift': (-.30, .26, .34), 'sweep': (-.10, -.30, .30), 'u7': (-.08, -.32, .30),
-    'u8': (-.10, -.30, .30), 'rs485': (-.30, .26, .34), 'explode': (-.30, .26, .34), 'assemble': (-.30, .26, .34),
-}
-GRAZING = {'sweep': .08, 'u7': .08, 'u8': .5, 'rs485': .08}
+CALLOUT_ANCHORS = {'lift': 'cn', 'u8': 'antenna', 'sweep': 'board', 'u7': 'u7', 'rs485': 'rs485'}
+
+# Object states as (seconds, value) keys, joined by monotone curves: they rest on repeated
+# values and pass through the others without stopping.
+COVER_MM = [(0, 0), (5, 0), (9.5, 80), (13, 300), (37, 300), (40.5, 95), (43.8, 95), (45.6, 0), (48, 0)]
+PLATE_MM = [(0, 0), (38, 0), (40.5, -42), (44, -42), (45.6, 0), (48, 0)]
+SPIN_DEG = [(0, 0), (38.5, 0), (44, 360), (48, 360)]
+FLIP_DEG = [(0, 0), (45.5, 0), (48, 360)]
+FLIP_RISE_MM = [(0, 0), (45.5, 0), (46.75, 45), (48, 0)]
+# The flip turns about a level axis across the opening camera's view, through the product's centre.
+FLIP_AXIS = Vector((math.cos(math.radians(-28)), math.sin(math.radians(-28)), 0))
+PRODUCT_CENTRE_MM = (0, 0, 2.5)
+SWEEP_POSITION = [(0, 1.08), (17.5, 1.08), (22.5, -.08), (48, -.08)]
+SWEEP_LEVEL = [(0, 0), (17.2, 0), (18, 2.4), (22, 2.4), (22.8, 0), (48, 0)]
+ANTENNA_GLOW = [(0, 0), (12.5, 0), (14.5, 1.6), (16.5, 1.6), (18, 0), (48, 0)]
+
+WIDE_KEY = (-.30, .26, .34)
+MACRO_KEY = (-.10, -.30, .30)
+CHIP_KEY = (-.08, -.32, .30)
+KEY_LIGHT = [(0, WIDE_KEY), (9.5, WIDE_KEY), (13, MACRO_KEY), (22, MACRO_KEY), (24.5, CHIP_KEY),
+             (28.5, CHIP_KEY), (31, WIDE_KEY), (48, WIDE_KEY)]
+# Grazing studio lights, as a fraction of their scene energy.
+GRAZING = [(0, 1), (10, 1), (13, .5), (17.2, .5), (18.6, .08), (34.8, .08), (37.5, 1), (48, 1)]
 
 
 def parse():
@@ -63,6 +103,79 @@ def parse():
     return p.parse_args(argv)
 
 
+def seconds(fr):
+    return (fr - 1) / FPS
+
+
+def monotone(keys):
+    """Piecewise cubic through (seconds, value) keys that never overshoots (Fritsch-Carlson)."""
+    t = [float(k[0]) for k in keys]
+    v = [float(k[1]) for k in keys]
+    n = len(t)
+    h = [t[i + 1] - t[i] for i in range(n - 1)]
+    d = [(v[i + 1] - v[i]) / h[i] for i in range(n - 1)]
+    m = [0.] * n
+    for i in range(1, n - 1):
+        if d[i - 1] * d[i] > 0:
+            w1, w2 = 2 * h[i] + h[i - 1], h[i] + 2 * h[i - 1]
+            m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i])
+
+    def at(x):
+        if x <= t[0]:
+            return v[0]
+        if x >= t[-1]:
+            return v[-1]
+        i = next(j for j in range(n - 1) if x < t[j + 1])
+        s = (x - t[i]) / h[i]
+        return ((2 * s ** 3 - 3 * s ** 2 + 1) * v[i] + (s ** 3 - 2 * s ** 2 + s) * h[i] * m[i]
+                + (-2 * s ** 3 + 3 * s ** 2) * v[i + 1] + (s ** 3 - s ** 2) * h[i] * m[i + 1])
+    return at
+
+
+def periodic_monotone(times, values, period):
+    """Periodic Fritsch-Carlson cubic: holds still where neighbouring stations repeat a value, never overshoots."""
+    n = len(times)
+    t = [times[-1] - period] + list(times) + [times[0] + period, times[1] + period]
+    y = [values[-1]] + list(values) + [values[0], values[1]]
+    h = [t[i + 1] - t[i] for i in range(len(t) - 1)]
+    d = [(y[i + 1] - y[i]) / h[i] for i in range(len(t) - 1)]
+    m = [0.] * len(t)
+    for i in range(1, len(t) - 1):
+        if d[i - 1] * d[i] > 0:
+            w1, w2 = 2 * h[i] + h[i - 1], h[i] + 2 * h[i - 1]
+            m[i] = (w1 + w2) / (w1 / d[i - 1] + w2 / d[i])
+
+    def at(x):
+        x %= period
+        i = max(j for j in range(1, n + 1) if t[j] <= x)
+        u = (x - t[i]) / h[i]
+        return ((2 * u ** 3 - 3 * u ** 2 + 1) * y[i] + (u ** 3 - 2 * u ** 2 + u) * h[i] * m[i]
+                + (-2 * u ** 3 + 3 * u ** 2) * y[i + 1] + (u ** 3 - u ** 2) * h[i] * m[i + 1])
+    return at
+
+
+def periodic_hermite(times, values, period):
+    """Periodic cubic with centred-difference slopes: continuous velocity through every station."""
+    n = len(times)
+    t = list(times) + [times[0] + period]
+    y = list(values) + [values[0]]
+
+    def slope(i):
+        prev_t, prev_y = (times[i - 1], values[i - 1]) if i > 0 else (times[-1] - period, values[-1])
+        next_t, next_y = (t[i + 1], y[i + 1])
+        return (next_y - prev_y) / (next_t - prev_t)
+    m = [slope(i) for i in range(n)] + [slope(0)]
+
+    def at(x):
+        x %= period
+        i = max(j for j in range(n) if t[j] <= x)
+        h = t[i + 1] - t[i]
+        u = (x - t[i]) / h
+        return ((2 * u ** 3 - 3 * u ** 2 + 1) * y[i] + (u ** 3 - 2 * u ** 2 + u) * h * m[i]
+                + (-2 * u ** 3 + 3 * u ** 2) * y[i + 1] + (u ** 3 - u ** 2) * h * m[i + 1])
+    return at
+
+
 def curves(idb):
     ad = idb.animation_data
     out = []
@@ -74,26 +187,31 @@ def curves(idb):
     return out
 
 
-def ease(idb, interp='BEZIER'):
+def interpolate(idb, interp):
     for fc in curves(idb):
         for kp in fc.keyframe_points:
             kp.interpolation = interp
-            if interp == 'BEZIER':
-                kp.easing = 'EASE_IN_OUT'
-                kp.handle_left_type = kp.handle_right_type = 'AUTO_CLAMPED'
 
 
-def key_prop(owner, path, frames, interp='BEZIER'):
-    for f, v in frames:
+def bake(owner, path, value_at, index=-1):
+    """Key a property on every frame, linearly between frames, so motion blur follows the curve."""
+    for fr in range(1, LENGTH + 1):
+        value = value_at(seconds(fr))
         if path.startswith('['):
-            owner[path[2:-2]] = v
+            owner[path[2:-2]] = value
         else:
-            setattr(owner, path, v)
-        owner.keyframe_insert(data_path=path, frame=f)
-    ease(owner, interp)
+            prop = getattr(owner, path)
+            if index >= 0:
+                prop[index] = value
+            elif hasattr(prop, '__len__'):
+                prop[:] = value
+            else:
+                setattr(owner, path, value)
+        owner.keyframe_insert(data_path=path, frame=fr, index=index)
+    interpolate(owner.id_data, 'LINEAR')
 
 
-def trace_sweep(frames):
+def trace_sweep():
     """Blue light running along the real top copper, driven by a keyed band position."""
     m = bpy.data.materials['O89 detail | Board from Gerbers']
     nt = m.node_tree
@@ -128,23 +246,36 @@ def trace_sweep(frames):
     add = N('ShaderNodeAddShader')
     L(surface, add.inputs[0]); L(em.outputs[0], add.inputs[1])
     L(add.outputs[0], out.inputs['Surface'])
-    for node, keys in ((pos, frames['pos']), (level, frames['level'])):
-        sock = node.outputs[0]
-        for f, v in keys:
-            sock.default_value = v
-            sock.keyframe_insert('default_value', frame=f)
-    ease(nt)
+    bake(pos.outputs[0], 'default_value', monotone(SWEEP_POSITION))
+    bake(level.outputs[0], 'default_value', monotone(SWEEP_LEVEL))
 
 
-def antenna_glow(keys):
+def antenna_glow():
     m = bpy.data.materials['O89 detail | Module antenna']
     b = m.node_tree.nodes['Principled BSDF']
     b.inputs['Emission Color'].default_value = (.08, .28, 1., 1)
-    sock = b.inputs['Emission Strength']
-    for f, v in keys:
-        sock.default_value = v
-        sock.keyframe_insert('default_value', frame=f)
-    ease(m.node_tree)
+    bake(b.inputs['Emission Strength'], 'default_value', monotone(ANTENNA_GLOW))
+
+
+def camera_path():
+    """Per-frame camera position and aim in metres, lens and f-stop, from the periodic spline."""
+    times = [s[0] for s in STATIONS]
+    # The aim holds on each subject between its stations and never overshoots, so a chip stays
+    # centred while the camera orbits it. The camera's angles, distance and optics keep moving
+    # through every station. Distance is interpolated in log space so dollies read at an even pace.
+    channels = [periodic_monotone(times, [s[1][k] for s in STATIONS], SECONDS) for k in range(3)]
+    az = periodic_hermite(times, [s[2] for s in STATIONS], SECONDS)
+    el = periodic_hermite(times, [s[3] for s in STATIONS], SECONDS)
+    dist = periodic_hermite(times, [math.log(s[4]) for s in STATIONS], SECONDS)
+    lens = periodic_hermite(times, [s[5] for s in STATIONS], SECONDS)
+    fstop = periodic_hermite(times, [s[6] for s in STATIONS], SECONDS)
+
+    def at(x):
+        aim = Vector([c(x) for c in channels]) * MM
+        a, e, d = math.radians(az(x)), math.radians(el(x)), math.exp(dist(x)) * MM
+        eye = aim + Vector((math.cos(e) * math.cos(a), math.cos(e) * math.sin(a), math.sin(e))) * d
+        return eye, aim, lens(x), fstop(x)
+    return at
 
 
 def main():
@@ -155,6 +286,8 @@ def main():
     s.render.fps = FPS
     s.frame_start, s.frame_end = 1, LENGTH
     s.render.film_transparent = True
+    s.render.use_motion_blur = True
+    s.render.motion_blur_shutter = .5
     s.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences
     prefs.compute_device_type = 'METAL'
@@ -164,6 +297,7 @@ def main():
     s.cycles.device = 'GPU'
     s.cycles.samples = a.samples
     s.cycles.adaptive_threshold = .03
+    s.cycles.use_animated_seed = True
     s.cycles.use_denoising = True
     s.cycles.denoiser = 'OPENIMAGEDENOISE'
     s.cycles.max_bounces = 6
@@ -177,57 +311,57 @@ def main():
         for o in bpy.data.collections[n].all_objects:
             o.hide_render = True
 
-    # Cover: closed, lifts to a readable 70 mm, clears the macro shots, drops to the exploded height, lands.
-    key_prop(controls, '["cover_lift_mm"]', [(1, 0.), (140, 0.), (205, 70.), (230, 70.), (264, 300.), (840, 300.), (900, 95.), (1040, 95.), (1150, 0.), (LENGTH, 0.)])
-    # Status light: 160 ms on every 1.3 s, as the firmware blinks it.
-    blink = []
-    f = 1
-    while f <= LENGTH:
-        blink += [(f, 1), (f + 4, 0)]
-        f += 31
-    key_prop(controls, '["led_on"]', blink, 'CONSTANT')
+    bake(controls, '["cover_lift_mm"]', monotone(COVER_MM))
+    # Status light: on for 5 frames every 40 (167 ms every 1.33 s), which repeats exactly over the loop.
+    for fr in range(1, LENGTH + 1, 40):
+        for f, v in ((fr, 1), (fr + 5, 0)):
+            controls['led_on'] = v
+            controls.keyframe_insert(data_path='["led_on"]', frame=f)
+    for fc in curves(controls):
+        if fc.data_path == '["led_on"]':
+            for kp in fc.keyframe_points:
+                kp.interpolation = 'CONSTANT'
 
-    # Exploded view: plate drops away, the whole product turns and returns.
     plate = bpy.data.objects['plate-a']
     z0 = plate.location.z
-    for fr, dz in ((841, 0.), (905, -.042), (1040, -.042), (1140, 0.), (LENGTH, 0.)):
-        plate.location.z = z0 + dz
-        plate.keyframe_insert('location', index=2, frame=fr)
-    ease(plate)
+    plate_mm = monotone(PLATE_MM)
+    bake(plate, 'location', lambda x: z0 + plate_mm(x) * MM, index=2)
+
     product = bpy.data.objects['Product | move or rotate the whole controller']
-    r0 = product.rotation_euler.z
-    for fr, dr in ((841, 0.), (1032, math.radians(38)), (1160, 0.), (LENGTH, 0.)):
-        product.rotation_euler.z = r0 + dr
-        product.keyframe_insert('rotation_euler', index=2, frame=fr)
-    ease(product)
+    # The spin and flip are relative to the product's saved placement. STATIONS and ANCHORS
+    # frame the scene's default placement at the origin.
+    base_location = product.location.copy()
+    base_rotation = product.rotation_euler.to_quaternion()
+    product.rotation_mode = 'QUATERNION'
+    spin, flip, rise = monotone(SPIN_DEG), monotone(FLIP_DEG), monotone(FLIP_RISE_MM)
+    centre = Vector(PRODUCT_CENTRE_MM) * MM
 
-    trace_sweep({'pos': [(265, -.08), (408, 1.08)], 'level': [(264, 0.), (280, 2.4), (395, 2.4), (408, 0.)]})
-    antenna_glow([(560, 0.), (610, 0.), (650, 1.6), (690, 1.6), (696, 0.)])
+    def turn(x):
+        return Quaternion((0, 0, 1), math.radians(spin(x))) @ Quaternion(FLIP_AXIS, math.radians(flip(x)))
+    bake(product, 'rotation_quaternion', lambda x: base_rotation @ turn(x))
+    bake(product, 'location', lambda x: base_location + base_rotation @ (centre + Vector((0, 0, rise(x) * MM)) - turn(x) @ centre))
 
-    # Lights: one film key per shot, grazing studio lights dimmed on the macro shots.
+    trace_sweep()
+    antenna_glow()
+
     key = bpy.data.lights.new('Film key', 'AREA')
     key.shape, key.size, key.energy = 'DISK', .24, 7.
     kob = bpy.data.objects.new('Film key', key)
     s.collection.objects.link(kob)
     kob.visible_camera = False
-    for name, (start, end, _) in SHOTS.items():
-        kob.location = KEY_LIGHT[name]
-        kob.rotation_euler = (Vector((0, 0, 0)) - kob.location).to_track_quat('-Z', 'Y').to_euler()
-        for fr in (start, end):
-            kob.keyframe_insert('location', frame=fr)
-            kob.keyframe_insert('rotation_euler', frame=fr)
-    ease(kob, 'CONSTANT')
+    key_axes = [monotone([(t, p[k]) for t, p in KEY_LIGHT]) for k in range(3)]
+
+    def key_at(x):
+        return Vector([c(x) for c in key_axes])
+    bake(kob, 'location', key_at)
+    bake(kob, 'rotation_euler', lambda x: (-key_at(x)).to_track_quat('-Z', 'Y').to_euler())
     for name in ('Light | Key softbox', 'Light | Front lettering'):
         bpy.data.objects[name].data.energy *= .4
+    grazing = monotone(GRAZING)
     for o in bpy.data.collections['07 | Studio lights and backdrop'].objects:
-        if o.type != 'LIGHT':
-            continue
-        full = o.data.energy
-        for name, (start, end, _) in SHOTS.items():
-            o.data.energy = full * GRAZING.get(name, 1.)
-            for fr in (start, end):
-                o.data.keyframe_insert('energy', frame=fr)
-        ease(o.data, 'CONSTANT')
+        if o.type == 'LIGHT':
+            full = o.data.energy
+            bake(o.data, 'energy', lambda x, full=full: full * grazing(x))
     fill = bpy.data.lights.new('Film top fill', 'AREA')
     fill.shape, fill.size, fill.energy = 'DISK', .5, 2.5
     fob = bpy.data.objects.new('Film top fill', fill)
@@ -238,46 +372,38 @@ def main():
         s.world.node_tree.nodes['Background'].inputs['Strength'].default_value *= .5
 
     s.timeline_markers.clear()
-    cams = {}
-    for name, (start, end, keys) in SHOTS.items():
-        data = bpy.data.cameras.new(f'Film {name}')
-        data.clip_start = .002
-        data.sensor_width = 36
-        cam = bpy.data.objects.new(f'Camera | Film {name}', data)
-        s.collection.objects.link(cam)
-        aim = bpy.data.objects.new(f'Film aim {name}', None)
-        s.collection.objects.link(aim)
-        t = cam.constraints.new('TRACK_TO')
-        t.target, t.track_axis, t.up_axis = aim, 'TRACK_NEGATIVE_Z', 'UP_Y'
-        data.dof.use_dof = True
-        data.dof.focus_object = aim
-        for fr, cp, ap, lens, fstop in keys:
-            cam.location = Vector(cp) * MM
-            cam.keyframe_insert('location', frame=fr)
-            aim.location = Vector(ap) * MM
-            aim.keyframe_insert('location', frame=fr)
-            data.lens = lens
-            data.keyframe_insert('lens', frame=fr)
-            data.dof.aperture_fstop = fstop
-            data.dof.keyframe_insert('aperture_fstop', frame=fr)
-        for idb in (cam, aim, data):
-            ease(idb)
-        s.timeline_markers.new(name, frame=start).camera = cam
-        cams[name] = (start, end, cam)
-
-    def camera_at(fr):
-        return next(c for st, en, c in cams.values() if st <= fr <= en)
+    data = bpy.data.cameras.new('Film')
+    data.clip_start = .002
+    data.sensor_width = 36
+    cam = bpy.data.objects.new('Camera | Film', data)
+    s.collection.objects.link(cam)
+    aim = bpy.data.objects.new('Film aim', None)
+    s.collection.objects.link(aim)
+    t = cam.constraints.new('TRACK_TO')
+    t.target, t.track_axis, t.up_axis = aim, 'TRACK_NEGATIVE_Z', 'UP_Y'
+    data.dof.use_dof = True
+    data.dof.focus_object = aim
+    path = camera_path()
+    bake(cam, 'location', lambda x: path(x)[0])
+    bake(aim, 'location', lambda x: path(x)[1])
+    bake(data, 'lens', lambda x: path(x)[2])
+    bake(data.dof, 'aperture_fstop', lambda x: path(x)[3])
+    s.camera = cam
 
     track = {k: [] for k in ANCHORS}
     for fr in range(1, LENGTH + 1):
         s.frame_set(fr)
-        cam = camera_at(fr)
-        s.camera = cam
         for k, p in ANCHORS.items():
             co = world_to_camera_view(s, cam, product.matrix_world @ (Vector(p) * MM))
             track[k].append([round(co.x, 4), round(1 - co.y, 4)])
+    shots = [{'name': n, 'start': round(st * FPS) + 1, 'end': round(en * FPS)} for n, (st, en) in WINDOWS.items()]
+    for shot in shots:
+        anchor = CALLOUT_ANCHORS.get(shot['name'])
+        if anchor:
+            points = track[anchor][shot['start'] - 1:shot['end']]
+            inside = sum(.05 < x < .95 and .05 < y < .95 for x, y in points) / len(points)
+            print(f"callout {shot['name']}: anchor in frame for {inside:.0%} of its window")
     a.out.mkdir(parents=True, exist_ok=True)
-    shots = [{'name': n, 'start': st, 'end': en} for n, (st, en, _) in cams.items()]
     (a.out / 'anchors.json').write_text(json.dumps({'fps': FPS, 'frames': LENGTH, 'shots': shots, 'anchors': track}))
     if a.anchors_only:
         return
@@ -291,7 +417,6 @@ def main():
         if out.exists():
             continue
         s.frame_set(fr)
-        s.camera = camera_at(fr)
         s.render.filepath = str(out)
         bpy.ops.render.render(write_still=True)
 

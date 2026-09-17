@@ -29,9 +29,12 @@ STEP's box components with parts placed from pick-and-place, marked from the
 BOM, and textures the board from the Gerber masks. Connectors keep the scene's
 datasheet-envelope proxies. The ESP32 module's matrix code is a fixed
 pseudo-random pattern. `render_chips.py` scales the laser marking and mattes
-the finishes for the flat top view. `render_film.py` projects anchor points on
-the board through each frame's camera into `anchors.json`; the website places
-its callouts from that file, so change the shots, anchors and callouts together.
+the finishes for the flat top view. `render_film.py` moves one camera without
+cuts through its stations along periodic curves, bakes every camera, object and
+light value on each frame, and renders with motion blur. It projects anchor
+points on the board through the camera into `anchors.json`, with the window in
+which each callout is shown; the website places its callouts from that file, so
+change the stations, windows, anchors and callouts together.
 
 ## Run
 
@@ -83,11 +86,14 @@ Hand `$M` and this checkout to the website packager. It reads `film/`, `chips/`,
 script unless `--only` leaves the miniatures out. It refuses scene or fab inputs
 that differ from the checked-out commit.
 
-Run one Blender process at a time; the renders share the GPU. The film is 1176
-frames at 40 samples, about 6.5 s per frame on an M2 Max, so a little over two
-hours. It skips frames that already exist, so an interrupted render resumes;
-`--frames 1-120` renders part of it and `--anchors-only` rewrites `anchors.json`
-without rendering. The chips and stills (96 samples) take seconds each;
+Run one Blender process at a time; the renders share the GPU. The film is 1440
+frames (48 s at 30 fps) at 40 samples, about 5 s per frame on an M2 Max, so
+about two hours. Check the motion first with `--size 640x360 --samples 8`, about
+35 minutes for the whole loop. The render skips frames that already exist, so an
+interrupted render resumes. Changing one station only changes the frames from
+two stations before it to two stations after it, so delete and render those; `--frames 1-120` renders part of the loop and
+`--anchors-only` rewrites `anchors.json` without rendering and reports how much of
+each callout window keeps its anchor in frame. The chips and stills (96 samples) take seconds each;
 `render_studio.py --only` renders a subset. The Gerber masks take about a minute
 of CPU.
 
