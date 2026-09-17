@@ -1,6 +1,6 @@
 # Origin89 generator board, board B
 
-![Development stage](https://img.shields.io/badge/development%20stage-prototype-orange.svg) First boards assembled, bench proof pending.
+![Development stage](https://img.shields.io/badge/development%20stage-prototype-orange.svg) First boards assembled. On the bench since 2026-09-14: the relays switch, but both relay chains skip the relay commons, so the generator contact and `FEEDBACK` cannot close.
 
 This board owns the generator contact. Board A asks for the engine over a
 five-wire link with two logic lines, `RUN` and a once-a-second `KICK`; this
@@ -30,8 +30,15 @@ ordered from JLCPCB and assembled. Bench proof happens on those boards. The
 Gerber check in `tools/` has no rule file for this board yet; this board's
 `B-nn` rules are checked on the bench.
 
+First bench contact, 2026-09-14 ([bench log](bench/2026-09-14.md)): driven
+from board A, both coils energize and both relays click, but the contact chain
+and the feedback chain are wired from each relay pole's NC terminal to its NO
+terminal (pins 6 to 8 and 11 to 9), and the commons, pins 4 and 13, are
+unconnected. Neither chain can close. A rework of four wire links is proposed
+and not yet tried.
+
 ## Revisions
 
 | Revision | Export | What changed |
 | --- | --- | --- |
-| first boards | 2026-09-09 | Gerbers and BOM of the layout the five assembled boards were made from; pick-and-place, schematic, STEP and DXF exported the same day. |
+| first boards | 2026-09-09 | Gerbers and BOM of the layout the five assembled boards were made from; pick-and-place, schematic, STEP and DXF exported the same day. Bench, 2026-09-14: K1 and K2 are wired NC to NO with their commons unconnected, so CN10 and `FEEDBACK` cannot close ([bench log](bench/2026-09-14.md)). |
