@@ -169,7 +169,7 @@ drift. B-13 to B-17 came across from it when the two were merged.
 | **B-17** | The coil return is the plane, never a trace under U2 | A 42 mA coil switching through a shared return trace is a nudge on a timing node |
 | **B-18** | Each chain enters a pole at its **common** (4 for pole 1, 13 for pole 2) and leaves at its **normally open** terminal (8, 9); NC (6, 11) stays unconnected. The relay symbol's pin names are checked against Omron's terminal drawing (K046-E1, bottom view) before fabrication | Revision A ran both chains from NC to NO with the commons unconnected, so neither the contact nor `FEEDBACK` could ever close, whatever the coils did, and five boards needed four solder links each (#7, #44). A symbol whose pins are named wrong passes every connectivity check |
 | **B-19** | Relay B's coil is driven by **`RUN` sampled on each `KICK` rising edge**: a D flip-flop (U3) with `RUN` on D and `KICK` on the clock, cleared at power-up by an RC on its clear input that outlasts the 3.3 V rail's rise. `RUN` reaches no relay coil directly and does not reset the monostable | Revision A opened the contact on every controller reset: PD0 stops driving, R1 pulls `RUN` low, Q2 opens and the monostable clears within milliseconds, so a watchdog reset stopped the generator and the firmware hot-restarted it seconds later (#18). Sampling `RUN` on the kick keeps a deliberate stop within one kick and rides through a silent controller only; a delay on `RUN` would have delayed the stop as well |
-| **B-20** | The monostable's window is **15 s**, and it alone bounds a silent controller: both lines quiet, a cut cable, a hung controller that kicks no more, each opens the contact at the window. The window exceeds board A's watchdog timeout (8 s nominal from the ±10 % LSI) plus its boot-to-first-kick time, which bring-up measures; the measured window is written on the schematic | Fifteen seconds of a generator running with no controller is harmless; the run that empties the tank is hours. A window under the watchdog plus boot means the ride-through never completes and every reset still stops the engine (#18). The latch of B-19 never holds anything the monostable does not bound |
+| **B-20** | The monostable's window is **15 s**, and it alone bounds a silent controller: both lines quiet, a cut cable, a hung controller that kicks no more, each opens the contact at the window. The window is budgeted: board A's watchdog timeout, 8 s nominal and up to 8.8 s from the ±10 % LSI, plus a 3 s allowance for reset-to-first-kick that the controller firmware owns as a requirement, plus margin; the measured window is written on the schematic | Fifteen seconds of a generator running with no controller is harmless; the run that empties the tank is hours. A window under the watchdog plus boot means the ride-through never completes and every reset still stops the engine (#18). The latch of B-19 never holds anything the monostable does not bound |
 | **B-21** | Behaviour, as the bench proves it: `RUN` high and kicking, contact closed. `RUN` low while kicking, the deliberate stop, opens within one kick. Both lines quiet, as in a controller reset or a pulled cable, holds the contact up to the window, then opens. Kicks stop with `RUN` high, opens at the window. Supply lost, opens at once. Power-up or plug-in with `RUN` already high closes at the first kick, never before it. Board A's firmware keeps kicking with `RUN` low while stopped and decides within the window after a reset (#18) | A table the bench runs against, so the ride-through is proven case by case rather than argued (bring-up steps 2, 4, 5 and 7 to 11) |
 
 ## What the bench proves on the first boards (bring-up step 7)
@@ -207,8 +207,8 @@ across CN10. A finding becomes a simulator fault, then a revision:
 11. A brown-out of the 12 V on CN9 with the contact closed → both relays drop
     at once; on recovery the contact closes at the first kick with `RUN` high.
 12. The window at room temperature, then with a 10 M resistor from `TIMING`
-    to GND, then cold; and board A's boot-to-first-kick time, which B-20's
-    window must exceed together with the watchdog timeout (B-07, #22).
+    to GND, then cold; and board A's reset-to-first-kick time against B-20's
+    3 s allowance (B-07, #22).
 
 Every one of these becomes a fault in the simulator before its fix, so the
 bench proves a case the simulator already reproduces.
@@ -224,9 +224,11 @@ bench proves a case the simulator already reproduces.
   It confirms the relay choice for this site; the choice already covers the
   class. On revision B the open-circuit voltage also sizes each of B-06's two
   series parts.
-- **Board A's boot-to-first-kick time** — unmeasured, and B-20's window has to
-  exceed it plus the 8 s watchdog. Measure it on the rev A bench before the
-  revision B timing parts are chosen.
+- **Board A's reset-to-first-kick time** — B-20 allows it 3 s of the window,
+  and the controller firmware has to meet that as a requirement, FRAM read
+  included (origin89hq/firmware#3). The bench self-test's 60 s delay before its
+  sequence is a test setting, not that figure. Measure it once the firmware
+  resumes after a reset, on the revision B bench at the latest.
 - **Box** — `enclosure/shoe.py`, the same family as the controller's:
   a flat plate carrying the board on four bosses (M3 inserts in a flat
   plate, which any insert press accepts), and a one-piece shoe over it held
