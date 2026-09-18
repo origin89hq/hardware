@@ -28,20 +28,20 @@
     "rule": "A-33",
     "dxf_layers": ["Top-Silkscreen-Layer", "Bottom-Silkscreen-Layer"],
     "required": [
-      "12V IN",
+      "BANK IN",
       "RS485-1", "RS485-2", "RS485-3", "A", "B", "GND", "5V",
       "CAN", "H", "L",
       "1-WIRE", "3V3", "DATA",
       "SELECTOR", "AUTO", "MAN",
       "START BATT",
-      "TANK", "SENSE",
+      "TANK", "24V", "SENSE",
       "VE.DIRECT 1", "VE.DIRECT 2", "RX", "TX",
-      "BOARD B", "12V", "RUN", "KICK", "FB",
+      "BOARD B", "BANK", "RUN", "KICK", "FB",
       "RTC CELL",
       "SWD", "SWDIO", "SWCLK", "NRST",
       "TERM RS485-1", "TERM RS485-2", "TERM RS485-3", "TERM CAN",
       "RS485-1 RX", "RS485-2 RX", "RS485-3 RX", "CAN RX", "STATUS", "FAULT",
-      "PAIR/RESET"
+      "SETUP"
     ],
     "required_patterns": ["^ORIGIN ?89\\b.*\\bREV B\\b"]
   }
