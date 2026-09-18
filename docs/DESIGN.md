@@ -348,12 +348,13 @@ the site's buses before the order (#26).
 ### The isolated bus is the exception, and none is fitted
 
 The criterion is two separate earthing systems, not distance. A 30 m run
-inside one building shares a ground and needs nothing; two buildings ten
-metres apart do not, and do. An ADM2582E-class part, isolated transceiver and
-isolated DC-DC in one package, has explicit DE and RE pins; there is no common
-isolated auto-direction part. So a bus that leaves the building uses the
-USART's hardware driver-enable, which the STM32 outputs on the RTS pin (below),
-and the firmware supports both modes regardless.
+between devices bonded at the same panel shares a ground and needs nothing;
+two buildings ten metres apart with a rod each do not, and do. An
+ADM2582E-class part, isolated transceiver and isolated DC-DC in one package,
+has explicit DE and RE pins; there is no common isolated auto-direction part.
+So a bus that crosses an earthing boundary uses the USART's hardware
+driver-enable, which the STM32 outputs on the RTS pin (below), and the
+firmware supports both modes regardless.
 
 No isolated channel is fitted, deliberately. At site A nothing but the dry
 contact pair crosses to the garage, so the bus would have no consumer, and an
