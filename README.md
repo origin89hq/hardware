@@ -8,8 +8,9 @@
 The boards and the enclosure of the Origin89 controller: a box that starts a
 generator and manages a battery bank at a site four hours from a road, through
 a Canadian winter, with nobody watching it fail. The reasoning behind the
-circuits is in the [controller design](https://docs.origin89.com/hardware/);
-this repository holds what was drawn from it and what a fab needs.
+circuits is in [docs/DESIGN.md](docs/DESIGN.md), the rules each board keeps
+are beside the board, and this repository holds what was drawn from them and
+what a fab needs.
 
 | Board | Stage | Files |
 | --- | --- | --- |

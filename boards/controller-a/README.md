@@ -21,7 +21,8 @@ Fabrication outputs: [`build/2026-09-09/`](build/2026-09-09/), Gerbers,
 and DXF.
 Rules the layout has to keep, numbered and with their reasons:
 [LAYOUT-REQUIREMENTS.md](LAYOUT-REQUIREMENTS.md).
-Firmware: the `o89-stm32` and `o89-esp32` workspaces in the Origin89 code repository.
+Firmware: [origin89hq/firmware](https://github.com/origin89hq/firmware); its
+`docs/ARCHITECTURE.md` is the system design this board implements.
 
 ## Status of the exports
 

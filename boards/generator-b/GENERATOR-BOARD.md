@@ -1,6 +1,6 @@
 # Generator board (Board B)
 
-The board that owns the generator contact. The [controller design](https://docs.origin89.com/hardware/)
+The board that owns the generator contact. [`docs/DESIGN.md`](../../docs/DESIGN.md#the-generator-interface)
 decided what it is and why it is a separate board; this file is what was drawn
 from that, the rules the layout has to keep, and what the bench has to prove
 on the first boards. The schematic is `Generator / Schematic2` in the
@@ -220,7 +220,7 @@ bench proves a case the simulator already reproduces.
   (B-18). See the [bench logs](bench/2026-09-14.md).
 - **The site's own input** — open-circuit voltage and short-circuit current on
   the GenStart 2-wire harness, a meter and a minute
-  (the [controller design](https://docs.origin89.com/hardware/), "Still to confirm with GenStart").
+  ([`docs/DESIGN.md`](../../docs/DESIGN.md#still-to-confirm-at-the-site), "Still to confirm at the site").
   It confirms the relay choice for this site; the choice already covers the
   class. On revision B the open-circuit voltage also sizes each of B-06's two
   series parts.
