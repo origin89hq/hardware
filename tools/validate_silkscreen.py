@@ -11,7 +11,8 @@ on the named layers. Standard library only.
 
 The rule file's `silk_text` entry names the rule, the DXF layers to read, the
 labels that must each appear at least once, and regular expressions for text
-whose exact wording is free (the board name, revision and date):
+whose exact wording is free (the board name, revision and date). All three
+lists are required and non-empty:
 
     "silk_text": {
       "rule": "A-33",
@@ -35,7 +36,9 @@ board unless the block is inserted, and this exporter inserts none. Matching
 is exact after folding case, collapsing whitespace, decoding DXF escapes and
 turning the minus sign U+2212 into a hyphen, so each label is one text object.
 A required label is the minimum, not the whole silkscreen: the list grows as
-the design settles. The check cannot see graphics, so a pin-1 arrow or a
+the design settles. The check proves presence, not position: a label at the
+wrong connector, or pins out of order, still passes, and the assembly drawing
+is the check for that. It cannot see graphics either, so a pin-1 arrow or a
 polarity mark drawn as lines is outside it.
 """
 
@@ -71,12 +74,10 @@ def load_rules(path):
         raise RuleError(f"{path}: silk_text has unknown keys {sorted(unknown)}")
     layers = spec.get("dxf_layers")
     required = spec.get("required")
-    patterns = spec.get("required_patterns", [])
-    for name, value in (("dxf_layers", layers), ("required", required)):
+    patterns = spec.get("required_patterns")
+    for name, value in (("dxf_layers", layers), ("required", required), ("required_patterns", patterns)):
         if not isinstance(value, list) or not value or not all(isinstance(v, str) and v.strip() for v in value):
             raise RuleError(f"{path}: silk_text.{name} must be a non-empty list of strings")
-    if not isinstance(patterns, list) or not all(isinstance(p, str) for p in patterns):
-        raise RuleError(f"{path}: silk_text.required_patterns must be a list of strings")
     try:
         compiled = [re.compile(p, re.IGNORECASE) for p in patterns]
     except re.error as exc:

@@ -123,16 +123,24 @@ class SilkscreenCheck(unittest.TestCase):
         board = self.board("ok.dxf", dxf([("TEXT", TOP, ["BANK IN"])]))
         typo = dict(self.spec)
         typo["require"] = typo.pop("required")
-        for rules in (
-            self.rules(spec=typo),
-            self.rules(spec={"rule": "T-1", "dxf_layers": [TOP], "required": []}),
-            self.rules(spec={"rule": "T-1", "dxf_layers": [TOP], "required": ["X"], "required_patterns": ["("]}),
-            self.rules(raw="{"),
-            self.rules(raw=json.dumps({"mounting_holes": {}})),
-        ):
+        no_patterns = {k: v for k, v in self.spec.items() if k != "required_patterns"}
+        payloads = (
+            json.dumps({"silk_text": typo}),
+            json.dumps({"silk_text": dict(self.spec, required=[])}),
+            json.dumps({"silk_text": dict(self.spec, required_patterns=["("])}),
+            json.dumps({"silk_text": no_patterns}),
+            json.dumps({"silk_text": dict(self.spec, required_patterns=[])}),
+            json.dumps({"silk_text": dict(self.spec, required_patterns=[" "])}),
+            json.dumps({"silk_text": dict(self.spec, dxf_layers="Top-Silkscreen-Layer")}),
+            "{",
+            json.dumps({"mounting_holes": {}}),
+        )
+        for raw in payloads:
+            rules = self.rules(raw=raw)
             code, out = self.run_check(rules, board)
-            self.assertEqual(code, 2, out)
-            self.assertFalse(any(line.startswith("PASS") for line in out), out)
+            self.assertEqual(code, 2, (raw, out))
+            self.assertFalse(any(line.startswith("PASS") for line in out), (raw, out))
+        self.assertEqual(len(payloads), 9)
 
     def test_usage_exits_2(self):
         out = io.StringIO()
