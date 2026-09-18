@@ -13,9 +13,9 @@ this repository holds what was drawn from it and what a fab needs.
 
 | Board | Stage | Files |
 | --- | --- | --- |
-| [Controller, board A](boards/controller-a/) | prototype: revision A fabricated, not measured | EasyEDA source, Gerbers, BOM, pick-and-place, STEP, DXF, fabrication drawing |
-| [Generator, board B](boards/generator-b/) | prototype: five boards assembled, bench proof pending | EasyEDA source, Gerbers, BOM, pick-and-place, STEP, DXF |
-| [Enclosure](enclosure/) | drawn, printing waits on a measured board | FreeCAD source |
+| [Controller, board A](boards/controller-a/) | prototype: revision A on the bench, the radios receive, board B's interlock not yet proven | EasyEDA source, Gerbers, BOM, pick-and-place, STEP, DXF, fabrication drawing |
+| [Generator, board B](boards/generator-b/) | prototype: five boards assembled; the relay chains need a four-link rework, after which the interlock passes on the bench | EasyEDA source, Gerbers, BOM, pick-and-place, STEP, DXF |
+| [Enclosure](enclosure/) | drawn, printing waits on a measured board | FreeCAD source, Blender presentation scene |
 
 Nothing here is a validated product. A board that has been fabricated has not
 necessarily been measured, and one that has been measured has not been
@@ -24,7 +24,8 @@ through a winter.
 ## Layout
 
 Each board has a README with its status and revisions, its design source
-under `easyeda/`, and dated fabrication exports under `build/<date>/`. A file
+under `easyeda/`, dated fabrication exports under `build/<date>/`, and, once a
+board is on the bench, dated session write-ups under `bench/`. A file
 that has been filed never changes: a changed export goes beside the old one
 under a new date, so a board in someone's hands can still be matched to its
 files. The STEP models are in Git LFS; install `git-lfs` before cloning or

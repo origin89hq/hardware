@@ -1,6 +1,6 @@
 # Origin89 Controller, board A
 
-![Development stage](https://img.shields.io/badge/development%20stage-prototype-orange.svg) First revision ordered, not yet measured.
+![Development stage](https://img.shields.io/badge/development%20stage-prototype-orange.svg) First revision fabricated. On the bench since 2026-09-14: SWD, both crystals, the RTC and its backup cell, FRAM, NOR, CAN in loopback, the analogue inputs, the watchdog, RS-485 across all three channels, three DS18B20s and the ESP32's radio receive all pass. Switching the ESP32 rail after ten minutes off corrupted the MCU 22 times out of 22 and is open; brown-out is unmeasured; board B's interlock waits on a board B wiring fault.
 
 This is the board that makes the decisions. An STM32G0B1 runs the control
 logic; an ESP32-C6 module carries the radio; three RS-485 channels, one CAN
@@ -49,4 +49,4 @@ keep-out radius, under solder mask. A-03 holds.
 
 | Revision | Export | What changed |
 | --- | --- | --- |
-| A | 2026-09-09 | First fabrication at JLCPCB, from this layout. Gerber check all clear. Not yet measured. |
+| A | 2026-09-09 | First fabrication at JLCPCB, from this layout. Gerber check all clear. First bench session on 2026-09-14: both processors boot; SWD, both crystals, the RTC, FRAM, NOR, CAN in loopback, the analogue inputs, the watchdog, RS-485 between all three channels at 115200 8N1 and 9600 8N2, a DS18B20, the RTC across a power loss on its CR2032, and the ESP32's rail and UART to the MCU work. As built, the STM32 cannot program the ESP32 over serial, because the module's IO8 boot strap is unconnected; with IO8 held high by a hand-held wire to a 4.7 kΩ pull-up, the ESP32 entered serial download mode, took its first firmware through the STM32, and from then on restarted into download mode on command with no wire. The ESP32 received 11 Wi-Fi networks and 30 BLE devices. Board B's interlock could not be proven because board B's relay chains cannot close ([board B bench log](../generator-b/bench/2026-09-14.md)); brown-out is not yet measured, and a self-test crash at the ESP32 rail switch is open ([bench log](bench/2026-09-14.md)). |
