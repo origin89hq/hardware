@@ -29,7 +29,7 @@ Revision B should fix the footprint so the chains run through the commons.**
 through the commons (B-18), a ride-through of controller resets behind a 15 s
 window (B-19 to B-21), the timing network off the 74HC123's resistor limit
 (B-07), series resistance behind the link's TVS (B-03), a start-input clamp one
-shorted part cannot bypass (B-06), and the same 12 V on `+12V` from any bank,
+shorted part cannot bypass (B-06), and 12 V nominal on `+12V` from any bank,
 regulated on board A (B-09). Nothing about revision B is proven yet; the
 bring-up list below is what proves it.
 
@@ -55,7 +55,7 @@ what it commanded.
 
 | Block | Parts | What it does |
 |---|---|---|
-| **CN9 link** | CN9 `B5P-VH` · D1–D3 `SMAJ15A` · R1, R2 100 k | Five wires from Board A (`V12`, `GND`, `GEN_RUN_CMD`, `GEN_WDT_KICK`, `GEN_STATUS` on that side): `+12V`, `GND`, `RUN`, `KICK`, `FEEDBACK`. A TVS on the rail and on each logic line, and a 100 k pull-down on `RUN` and `KICK`; an unplugged cable reads *stop*, never floats. Revision B: `+12V` is board A's regulated 12 V on any bank (`A-20e`), and a 10 k series resistor follows each logic line's TVS before anything reads it (B-03) |
+| **CN9 link** | CN9 `B5P-VH` · D1–D3 `SMAJ15A` · R1, R2 100 k | Five wires from Board A (`V12`, `GND`, `GEN_RUN_CMD`, `GEN_WDT_KICK`, `GEN_STATUS` on that side): `+12V`, `GND`, `RUN`, `KICK`, `FEEDBACK`. A TVS on the rail and on each logic line, and a 100 k pull-down on `RUN` and `KICK`; an unplugged cable reads *stop*, never floats. Revision B: `+12V` is board A's regulated rail, 12 V nominal and not below 10 V here on any bank (`A-20b`, `A-20e`), and a 10 k series resistor follows each logic line's TVS before anything reads it (B-03) |
 | **3.3 V** | U1 `HT7533-1` · C1 100 n · C2 10 µ | The only rail the logic needs; 28 V-rated input so the 12 V bank's transients do not reach a 6 V part. Unchanged on revision B, fed from the regulated 12 V |
 | **Watchdog** | U2 `74HC123D` · R3 1 M · C3 10 µ · C4 100 n | Monostable 1: `KICK` rising edge on 1B retriggers it, `RUN` on 1RD# holds it reset while low, Q on `WD_OK`. Pulse width ≈ 0.45 · R3 · C3 ≈ **4.5 s**. The output is a level, not a pulse: high while kicks keep coming, low a few seconds after they stop, high again at the next kick. Monostable 2 is parked (2A# high, 2B and 2RD# low). Revision B: 1RD# is tied high so `RUN` no longer resets it, and R3 at or below 470 k with C3 about 68 µF give a **15 s** window (B-07, B-20) |
 | **RUN latch** (revision B) | U3, a single D flip-flop with asynchronous clear (74LVC1G175 class) · an RC on its clear | `RUN` on D, `KICK` on the clock: Q is what the controller last asked while it was alive. Cleared at power-up by the RC on its clear input, which outlasts the 3.3 V rail's rise. Q drives Q2; `RUN` reaches no coil (B-19) |
