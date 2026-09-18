@@ -85,8 +85,8 @@ coil directly, because a `KICK` stuck high is exactly the failure the
 monostable exists to catch (B-02). On revision A the window is about 4.5 s by
 design and 4.3 s on the bench, inside the 3.0–6.5 s the contract allows and
 drifting with board temperature, so the firmware measures what it sees and
-never assumes ([bench, 2026-09-17](../boards/generator-b/bench/2026-09-17.md),
-#22).
+never assumes (#22, and the
+[bench log of 2026-09-17](../boards/generator-b/bench/2026-09-17.md)).
 
 **The claim the first design made, and revision A did not keep.** The design
 said a brief controller reset, a watchdog or a brown-out, would re-kick before
