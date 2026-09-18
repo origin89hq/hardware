@@ -5,8 +5,12 @@ default:
 skills-sync:
     python3 .origin89/sync-engineering.py
 
-# Validate the exact filed export selected for this board.
-check: gerbers
+# Validate the exact filed export selected for this board, and the tools that do it.
+check: gerbers test
+
+# Behaviour tests for the repository's own tools; standard library only.
+test:
+    python3 -m unittest discover -s tools -p 'test_*.py'
 
 gerbers:
     python3 tools/validate_gerbers.py boards/controller-a/gerber-rules.json boards/controller-a/build/2026-09-09/gerber.zip

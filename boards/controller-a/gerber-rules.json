@@ -38,11 +38,11 @@
       "VE.DIRECT 1", "VE.DIRECT 2", "RX", "TX",
       "BOARD B", "BANK", "RUN", "KICK", "FB",
       "RTC CELL",
-      "SWD", "SWDIO", "SWCLK", "NRST", "NC",
+      "SWD", "VDD", "SWDIO", "SWCLK", "NRST", "NC",
       "TERM RS485-1", "TERM RS485-2", "TERM RS485-3", "TERM CAN",
       "RS485-1 RX", "RS485-2 RX", "RS485-3 RX", "CAN RX", "STATUS", "FAULT",
       "PAIR"
     ],
-    "required_patterns": ["^ORIGIN ?89\\b.*\\bREV B\\b"]
+    "required_patterns": ["^ORIGIN ?89\\b", "\\bREV B\\b", "\\b20[2-9][0-9]-[01][0-9]\\b"]
   }
 }
