@@ -37,8 +37,8 @@ one carrying the MCU, three RS-485 channels and CAN. `LAYOUT-REQUIREMENTS.md`
 
 ### A maintained contact, and a kit that owns the engine
 
-Site A's generator is a Honda EU3000is with a GenStart EU3000is-P wireless and
-2-wire start module. GenStart's own answer, when asked:
+Site A's generator carries a wireless and 2-wire remote-start kit. The kit
+maker's own answer, when asked:
 
 > "You can touch the 2 terminals in that connector together with a screwdriver.
 > When connection is made between these 2 terminals the generator should crank
@@ -51,8 +51,8 @@ dry contact out and one AC meter in, not six inputs and four outputs, and there
 is no generator module in V1: a dry contact over 60 ft has no voltage drop and
 no comms link to lose. A module becomes a product feature when a run is long
 enough that pulling twelve conductors beats pulling one shielded pair, or when
-a site has a genset without a start kit. A Deep Sea or ComAp panel at another
-site changes that site from *drive a contact* to *talk to a controller over
+a site has a genset without a start kit. A genset with a controller panel of
+its own changes that site from *drive a contact* to *talk to a controller over
 Modbus*, which the buses below already carry.
 
 ### The electrical design
@@ -98,7 +98,7 @@ clears, and every controller reset opened the contact at once (#18). Revision
 B keeps the promise with a latch rather than a delay: relay B follows `RUN`
 *sampled on each `KICK` edge*, so a deliberate stop lands within one kick and
 only a silent controller rides through, bounded by a window widened to 15 s
-(B-19, B-20). The window is budgeted, not guessed: the controller's 8 s
+(B-19, B-20). The window is budgeted: the controller's 8 s
 watchdog at the LSI's worst case, 8.8 s, plus 3 s for reset-to-first-kick,
 which the firmware owes as a requirement, plus margin (#51). Revision B is
 drawn and not yet proven; B-21 is the table the bench runs against.
@@ -106,7 +106,7 @@ drawn and not yet proven; B-21 is the table the bench runs against.
 **A lockout switch at the generator end.** Open means the software is
 physically disconnected regardless of what it believes. It is the service
 lockout: cut it before touching the engine and nothing remote can crank it
-while your hands are in there. The GenStart manual's own wiring diagram puts
+while your hands are in there. The kit manual's own wiring diagram puts
 an emergency stop switch in series in the junction box, which is this switch.
 It is a different thing from the auto/off/manual selector at the controller,
 which is an operator override; the firmware's `ARCHITECTURE.md` has both.
@@ -117,7 +117,8 @@ written, and a low-level dry-circuit load is exactly where ordinary silver
 contacts fail to make, because there is not enough energy to break through the
 oxide film. A sweep of the remote-start section of every 2-wire generator
 controller's manual found each input switched to negative at a few milliamps
-behind a pull-up, a DSE at 12 V and 6 mA, a Generac at 5 V current-limited, so
+behind a pull-up, one maker's at 12 V and 6 mA, another's at 5 V and
+current-limited, so
 board B carries the G5V-2's gold-clad bifurcated crossbar contacts, specified
 from 10 µA to 2 A. That closes the question for the class; the site's own
 figures still confirm it, and on revision B they size the clamp (below).
@@ -154,27 +155,27 @@ empty-flash window; the firmware's `ARCHITECTURE.md` carries that half.
 ### Proof of running is measured at the panel
 
 A contact closing is not an engine catching. The `starting` to `running`
-transition needs AC the controller can read itself, and the Pi-era answer, a
+transition needs AC the controller can read itself, and the earlier answer, a
 smart plug on Wi-Fi, breaks the one rule on the machine where not knowing the
 state is most dangerous; the firmware's `ARCHITECTURE.md` makes that argument.
 The choices for sensing:
 
 | | | |
 |---|---|---|
-| **PZEM-016 on RS-485** at the panel, on the charger's supply | ~$25 | Voltage *and* frequency. "120 V at 60 Hz" is far better evidence an engine caught than "current is flowing" |
+| **An RS-485 AC meter** at the panel, on the charger's supply | ~$25 | Voltage *and* frequency. "120 V at 60 Hz" is far better evidence an engine caught than "current is flowing" |
 | **Optocoupled AC detect** into a GPIO | ~$5 | Simplest and most direct. What the smart plug plan replaced |
-| **Charge current on the bank**, via the existing PZEM-017 | free | Indirect, and solar charges too; it cannot tell the two sources apart |
+| **Charge current on the bank**, via the DC meter already there | free | Indirect, and solar charges too; it cannot tell the two sources apart |
 
-The PZEM-016 is the choice: frequency is the discriminator current alone
-cannot provide. It is a 9600 8N1 device and the DC meters are 8N2, so it
-cannot share their bus; which port it takes is in the bus map below. At site
+The AC meter is the choice: frequency is the discriminator current alone
+cannot provide. Its framing differs from the DC meters', so it cannot share
+their bus; which port it takes is in the bus map below. At site
 A the generator's 120 V output already runs to the cabin and lands on the
 charger outlet, so proof of running is measured there and nothing but the dry
 contact pair crosses to the garage.
 
-### What the GenStart manual says, and which lines change a design
+### What the kit's manual says, and which lines change a design
 
-From the GenStart EU3000is 2-wire installation manual:
+From the kit's 2-wire installation manual:
 
 > The manufacturer temperature range specification for the choke actuator is
 > **−20 °C to +60 °C**. It is not recommended to start the generator with the
@@ -202,7 +203,7 @@ port carries.
   Release means shut off was described for the 2-wire path only. If the fob
   latches, the firmware's `stop not honoured` is routine rather than rare, and
   the selector's *Off* position is the only honest way to hand control back.
-  One email to GenStart.
+  One email to the kit's maker.
 - **The 2-wire input's open-circuit voltage and short-circuit current.** A
   meter across the connector, a minute. It confirms the site sits inside the
   class the G5V-2 covers, and on revision B it sizes each of B-06's two series
@@ -342,12 +343,11 @@ band, and a mid-bus board with its jumper still fitted is the three-terminator
 case; two terminators keep only 40–50 mV of margin against noise on a long
 cable. Revision B sizes the bias to stay above 200 mV with three terminators,
 about 390 Ω, settled on a real cable against the bias of the other devices on
-the site's buses before the order (#26). The rule carries the number; this
-paragraph carries why 560 Ω looked right and was not.
+the site's buses before the order (#26).
 
 ### The isolated bus is the exception, and none is fitted
 
-The criterion is **two separate earthing systems**, not distance. A 30 m run
+The criterion is two separate earthing systems, not distance. A 30 m run
 inside one building shares a ground and needs nothing; two buildings ten
 metres apart do not, and do. An ADM2582E-class part, isolated transceiver and
 isolated DC-DC in one package, has explicit DE and RE pins; there is no common
@@ -362,27 +362,27 @@ with its own rod is what would reopen this (`LAYOUT-REQUIREMENTS.md` §5).
 
 ### Bus map
 
-Victron is the trap here, and it costs a bench day: **Victron does not speak
-Modbus RTU on RS-485.**
+The VE.Direct family is the trap here, and it costs a bench day: those
+products do not speak Modbus RTU on RS-485.
 
 | Device | Bus |
 |---|---|
-| EPEver, Renogy, Srne, Growatt | RS-485, Modbus RTU, 115200 8N1 |
-| Peacefair PZEM DC meters | RS-485, Modbus RTU, 9600 **8N2**; passive on the bus side and fed 5 V over the cable, so they take the 4-pin port (A-37) |
-| PZEM-016 on the genset (AC) | RS-485, 9600 8N1, a third framing, so it cannot share the DC meters' bus |
+| Charge controllers speaking Modbus RTU | RS-485, 115200 8N1 |
+| DC meters | RS-485, Modbus RTU, 9600 **8N2**; passive on the bus side and fed 5 V over the cable, so they take the 4-pin port (A-37) |
+| The AC meter at the panel | RS-485, 9600 8N1, a third framing, so it cannot share the DC meters' bus |
 | Origin89 modules (V2) | RS-485, Modbus RTU, 9600, plus an attention line |
-| Pylontech and most lithium BMSes | CAN, 500 k |
-| Victron BMS, Lynx, batteries | CAN, 500 k (VE.Can / BMS-Can) |
-| Victron SmartShunt, BMV, MPPT | **VE.Direct**: TTL UART, point to point, one port each |
-| Victron MultiPlus / Quattro | VE.Bus, proprietary. Realistically read through a GX over Modbus TCP, a client's job |
+| Most lithium BMSes | CAN, 500 k |
+| VE.Can and BMS-Can devices | CAN, 500 k |
+| VE.Direct devices: shunts, battery monitors, MPPTs | **VE.Direct**: TTL UART, point to point, one port each |
+| VE.Bus inverter-chargers | Proprietary; read through their own gateway over Modbus TCP, a client's job |
 | DS18B20 | 1-Wire |
 
 Three RS-485 channels carry three framings, one each. Which connector carries
 which is configuration in the firmware, with one constraint the board sets:
-the PZEM DC meters need the 5 V pin, and only `CN4` has one. Revision A read a
-PZEM-017 on that port at 9600 8N2 as soon as it had 5 V from elsewhere, 119 of
-120 polls (#34). When the V2 modules arrive they take a channel, and the
-PZEM-016 is the port that then gets forgotten until a respin, which is why the
+the DC meters need the 5 V pin, and only `CN4` has one. Revision A read a DC
+meter on that port at 9600 8N2 as soon as it had 5 V from elsewhere, 119 of
+120 polls (#34). When the V2 modules arrive they take a channel, and the AC
+meter is the port that then gets forgotten until a respin, which is why the
 serial budget below counts it.
 
 **Modules speak Modbus, not a house protocol.** The same driver stack then
@@ -398,20 +398,20 @@ Two VE.Direct ports are where the shunt lives, and the first design priced
 them as nearly free, a UART and a level shift. Revision A built them that way,
 with 1 kΩ in series and no level shift, listening on pin 3, its own TX
 position, so they work only with a straight cable and only with 3.3 V
-products. **Superseded by A-38.** Victron's MPPTs drive 5 V, which exceeds the
-STM32's pin limit whenever the internal pull-up is on or the board is off, and
-Victron's own FAQ asks for galvanic isolation because the product side has
+products. **Superseded by A-38.** The maker's MPPTs drive 5 V, which exceeds
+the STM32's pin limit whenever the internal pull-up is on or the board is off,
+and its own FAQ asks for galvanic isolation because the product side has
 little protection of its own. Revision B listens on pin 2, the producer's TX,
-through a digital isolator per port powered from the port's pin 4 within
-Victron's 10 mA limit, working at both levels Victron drives, and defaulting
-high on the board side while the Victron side is unpowered so an unplugged
-port reads idle by the part's own fail-safe (#27). No Victron device has been
-on the bench yet; that is §5 item 9.
+through a digital isolator per port powered from the port's pin 4 within the
+port's documented 10 mA limit, working at both levels the products drive, and
+defaulting high on the board side while the product side is unpowered so an
+unplugged port reads idle by the part's own fail-safe (#27). No VE.Direct
+device has been on the bench yet; that is §5 item 9.
 
 ### Seven serial ports against eight instances
 
 An earlier draft said the part has six USARTs and treated the budget as
-closing at zero margin. It has **eight** independent serial instances,
+closing at zero margin. It has eight independent serial instances,
 USART1/2/3 (FULL), USART4/5/6 (BASIC), LPUART1/2 (LP), per RM0444 Rev 5 Table
 179, and the undercount is the only reason this looked tight.
 
@@ -420,7 +420,7 @@ USART1/2/3 (FULL), USART4/5/6 (BASIC), LPUART1/2 (LP), per RM0444 Rev 5 Table
 | ESP32 link, 921600, CTS+RTS | **USART1/2/3** | Only the FULL set has a FIFO. A BASIC instance at 921600 is a byte-at-a-time interrupt storm |
 | Isolated bus, hardware DE, if ever fitted | **USART1/2/3** | FULL, and DE needs an instance whose RTS pin is free (below) |
 | Two RS-485 channels, auto-direction | USART4/5/6 | No DE and no flow control needed, so BASIC is enough at 9600 |
-| **PZEM-016, AC proof of running** | USART4/5/6 | **A seventh port.** 9600 8N1 cannot share the DC meters' 8N2, and once the V2 modules take a channel it cannot share theirs either |
+| **The AC meter, proof of running** | USART4/5/6 | **A seventh port.** 9600 8N1 cannot share the DC meters' 8N2, and once the V2 modules take a channel it cannot share theirs either |
 | VE.Direct ×2, RX only | **LPUART1/2** | Needs neither DE nor flow control, and LPUART can run while the core is stopped |
 | Console | not a UART | `defmt` over RTT on SWD |
 
@@ -492,7 +492,7 @@ signal on either is a scrapped board (§5 item 3).
 Recorded so they are not re-litigated:
 
 - **The generator interface** is a maintained dry contact, closed means run,
-  and the GenStart kit owns cranking. Confirmed by GenStart.
+  and the start kit owns cranking, confirmed by its maker.
 - **No generator module in V1.** A dry contact over 60 ft has no voltage drop
   and no comms link to lose.
 - **The electrical room stays above 0 °C and is occupied**, so commercial-range
