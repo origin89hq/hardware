@@ -12,9 +12,10 @@ revision and a date is a result; "should work" is not.
 
 File a fabrication export with `tools/import_easyeda_export.py`. It dates
 the directory, fixes the names, and refuses to change a file that is already
-filed. Export the schematic PDF with it. Then run the Gerber and silkscreen
-checks and put the results, pass or the rule numbers that failed, in the board
-README's revision table.
+filed. Export the schematic PDF with it. Then run `just check` and
+`just silkscreen <path to board.dxf>` and put the results, pass or the rule
+numbers that failed, in the board README's revision table. The silkscreen check
+joins `just check` with the first export that carries labels.
 
 ## Development setup
 

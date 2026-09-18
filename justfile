@@ -15,7 +15,8 @@ test:
 gerbers:
     python3 tools/validate_gerbers.py boards/controller-a/gerber-rules.json boards/controller-a/build/2026-09-09/gerber.zip
 
-# Check the same export's silkscreen text against the A-33 label list. The filed
-# rev A export predates that rule and fails it; this joins `check` with rev B.
-silkscreen:
-    python3 tools/validate_silkscreen.py boards/controller-a/gerber-rules.json boards/controller-a/build/2026-09-09/board.dxf
+# Check an export's silkscreen text against the A-33 label list. Defaults to the
+# filed export, which predates that rule and fails it; joins `check` with the
+# first export that carries labels.
+silkscreen dxf="boards/controller-a/build/2026-09-09/board.dxf":
+    python3 tools/validate_silkscreen.py boards/controller-a/gerber-rules.json {{dxf}}

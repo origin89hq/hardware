@@ -132,6 +132,8 @@ class SilkscreenCheck(unittest.TestCase):
             json.dumps({"silk_text": dict(self.spec, required_patterns=[])}),
             json.dumps({"silk_text": dict(self.spec, required_patterns=[" "])}),
             json.dumps({"silk_text": dict(self.spec, dxf_layers="Top-Silkscreen-Layer")}),
+            json.dumps({"silk_text": dict(self.spec, required=["BANK IN", 7])}),
+            "[]",
             "{",
             json.dumps({"mounting_holes": {}}),
         )
@@ -140,7 +142,7 @@ class SilkscreenCheck(unittest.TestCase):
             code, out = self.run_check(rules, board)
             self.assertEqual(code, 2, (raw, out))
             self.assertFalse(any(line.startswith("PASS") for line in out), (raw, out))
-        self.assertEqual(len(payloads), 9)
+        self.assertEqual(len(payloads), 11)
 
     def test_usage_exits_2(self):
         out = io.StringIO()
