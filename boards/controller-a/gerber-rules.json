@@ -36,7 +36,7 @@
       "START BATT",
       "TANK", "24V", "SENSE",
       "VE.DIRECT 1", "VE.DIRECT 2", "RX", "TX",
-      "BOARD B", "BANK", "RUN", "KICK", "FB",
+      "BOARD B", "+12V", "RUN", "KICK", "FB",
       "RTC CELL",
       "SWD", "VDD", "SWDIO", "SWCLK", "NRST", "NC",
       "TERM RS485-1", "TERM RS485-2", "TERM RS485-3", "TERM CAN",
