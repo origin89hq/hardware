@@ -22,8 +22,14 @@ on every copper layer, each with its rule number) and the layer files:
       "voids": [{"rule": "A-15", "label": "antenna band above y=52.5",
                  "rect": [-50, 52.5, 50, 62.5]}],
       "copper_layers": [["L1 top", "Gerber_TopLayer.GTL"], ...],
-      "silk_layers": [["top silk", "Gerber_TopSilkscreenLayer.GTO"], ...]
+      "silk_layers": [["top silk", "Gerber_TopSilkscreenLayer.GTO"], ...],
+      "silk_min_stroke_mm": 0.15
     }
+
+`silk_min_stroke_mm` is required once `silk_layers` names a layer: every drawn
+silkscreen stroke must be at least that wide. JLCPCB prints nothing reliably
+under 0.15 mm, and a footprint whose outline is drawn at 0.1 mm loses it
+without any tool saying so; text height is `validate_silkscreen.py`'s check.
 
 Why this exists: the placement checker cannot see pads, copper or routing,
 and DRC is silent about both failures this script names. JLCPCB's delivered
@@ -153,6 +159,16 @@ def npth_holes(path):
     return holes
 
 
+def thin_strokes(path, min_mm):
+    """(x, y, width) at the middle of every drawn line or arc narrower than min_mm."""
+    thin = []
+    for obj in GerberFile.open(path).objects:
+        for p in obj.to_primitives(unit="mm"):
+            if isinstance(p, (gp.Line, gp.Arc)) and p.width < min_mm - 1e-4:
+                thin.append(((p.x1 + p.x2) / 2, (p.y1 + p.y2) / 2, p.width))
+    return thin
+
+
 def load_rules(path):
     """The board's rule file, checked for shape so a typo fails here and not
     as a check that silently compares nothing."""
@@ -171,6 +187,9 @@ def load_rules(path):
     silk = [(str(n), str(f)) for n, f in rules.get("silk_layers", [])]
     if not copper:
         raise ValueError("copper_layers is empty")
+    stroke = rules.get("silk_min_stroke_mm")
+    if silk and (isinstance(stroke, bool) or not isinstance(stroke, (int, float)) or stroke <= 0):
+        raise ValueError("silk_min_stroke_mm must be a positive number when silk_layers is set")
     return {
         "rule": str(mh["rule"]),
         "centres": centres,
@@ -179,6 +198,7 @@ def load_rules(path):
         "voids": voids,
         "copper": copper,
         "silk": silk,
+        "stroke": float(stroke) if silk else None,
     }
 
 
@@ -265,6 +285,10 @@ def main():
             check(inter.is_empty, f"{hole_rule} keep-out at ({hx:+g},{hy:+g})",
                   "" if inter.is_empty else f"{inter.area:.2f} mm^2 inside r={keepout}")
         if is_silk:
+            thin = thin_strokes(path, rules["stroke"])
+            where = ", ".join(f"({x:+.2f},{y:+.2f}) {w:.3f} mm" for x, y, w in thin[:4])
+            check(not thin, f"silkscreen strokes at least {rules['stroke']:g} mm",
+                  "" if not thin else f"{len(thin)} thinner, e.g. {where}")
             continue
         for rule, label, rect in rules["voids"]:
             # A mounting hole inside a void is the hole rule's finding and is

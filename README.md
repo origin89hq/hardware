@@ -56,10 +56,13 @@ python tools/validate_gerbers.py boards/controller-a/gerber-rules.json boards/co
 ```
 
 It reads the copper layer by layer and reports each rule by number, so a
-failure names the hole or the band. Which holes, which keep-out radius and
-which voids come from the board's `gerber-rules.json`, so the same script
-checks the [camera board](https://github.com/origin89hq/camera) against its
-own rules. It runs in CI on every push against the newest controller export.
+failure names the hole or the band; it also holds every silkscreen stroke to
+the fab's minimum width. Which holes, which keep-out radius and which voids
+come from the board's `gerber-rules.json`, so the same script checks the
+[camera board](https://github.com/origin89hq/camera) against its own rules.
+`tools/validate_silkscreen.py` reads the export's `board.dxf` for the `A-33`
+labels and the minimum text height. `just check` runs both, and CI runs it on
+every push against the newest controller export.
 
 ## Licence
 
