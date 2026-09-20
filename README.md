@@ -52,7 +52,7 @@ memory.
 
 ```sh
 pip install gerbonara shapely
-python tools/validate_gerbers.py boards/controller-a/gerber-rules.json boards/controller-a/build/2026-09-19/gerber.zip
+python tools/validate_gerbers.py boards/controller-a/gerber-rules.json boards/controller-a/build/2026-09-20/gerber.zip
 ```
 
 It reads the copper layer by layer and reports each rule by number, so a
