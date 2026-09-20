@@ -108,8 +108,11 @@ physically disconnected regardless of what it believes. It is the service
 lockout: cut it before touching the engine and nothing remote can crank it
 while your hands are in there. The kit manual's own wiring diagram puts
 an emergency stop switch in series in the junction box, which is this switch.
-It is a different thing from the auto/off/manual selector at the controller,
+It is a different thing from the auto/off/manual mode at the controller,
 which is an operator override; the firmware's `ARCHITECTURE.md` has both.
+Revision B gives that mode no switch of its own: it is set on the button and
+kept in FRAM (`A-36`, `A-42`), because the generator is an add-on and a base
+controller should not carry a control for equipment that is not fitted.
 
 **Contacts for a dry circuit.** Nobody had measured the 2-wire input's
 open-circuit voltage or short-circuit current when the first design was
@@ -202,7 +205,8 @@ port carries.
 - **Whether opening the 2-wire contact stops a fob-started generator.**
   Release means shut off was described for the 2-wire path only. If the fob
   latches, the firmware's `stop not honoured` is routine rather than rare, and
-  the selector's *Off* position is the only honest way to hand control back.
+  Off is the only honest way to hand control back, and from revision B that is
+  a button gesture and the app rather than a switch (`A-36`).
   One email to the kit's maker.
 - **The 2-wire input's open-circuit voltage and short-circuit current.** A
   meter across the connector, a minute. It confirms the site sits inside the
@@ -448,7 +452,7 @@ Seven allocated, one spare. Two silicon facts constrain the schematic:
 | Temperature range, board A | Commercial parts | The electrical room stays above 0 °C and is occupied. No −40 requirement and no conformal coating for V1 |
 | Mains | **Never on the board** | Dry contacts only, driving contactors somebody else certified. Sidesteps CSA and UL as a category |
 | Storage | FRAM **and** NOR | Different failure consequences, so different chips: FRAM for everything control-critical that must survive a cut mid-write, NOR for the log ring. What each holds is the firmware's |
-| Override | Auto/off/manual selector at the controller; lockout switch at the genset | Two different needs, operator override and service lockout. Revision B adds a button the STM32 reads for the gestures the protocol needs (A-42) |
+| Override | Auto/off/manual at the controller, on the selector in revision A and on the button from revision B; lockout switch at the genset | Two different needs, operator override and service lockout. Revision B reads the mode from the button it adds for the protocol's gestures (A-42) and drops the selector connector (A-36), since the generator is an add-on; a hardware switch on the generator board is open as origin89hq/hardware#55 |
 | Debug | SWD, 6-pin in ST-LINK order on revision B | Revision A's header carries no NRST, so a probe cannot connect under reset and the only recovery is a wire to a capacitor pad; the M0+ has no trace, so the SWO position is labelled NC (A-40, #29) |
 
 ## Before any board is laid out

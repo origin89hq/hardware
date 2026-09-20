@@ -33,7 +33,6 @@
       "RS485-1", "RS485-2", "RS485-3", "A", "B", "GND", "5V",
       "CAN", "H", "L",
       "1-WIRE", "3V3", "DATA",
-      "SELECTOR", "AUTO", "MAN",
       "START BATT",
       "TANK", "24V", "SENSE",
       "VE.DIRECT 1", "VE.DIRECT 2", "RX", "TX",
