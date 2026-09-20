@@ -19,6 +19,11 @@ Fabrication outputs: [`build/2026-09-09/`](build/2026-09-09/), Gerbers,
 [bill of materials](build/2026-09-09/bom.csv),
 [pick-and-place](build/2026-09-09/pick-and-place.csv), schematic PDF, STEP
 and DXF.
+Revision B, not yet fabricated: [`easyeda/origin89-controller-revb.eprj2`](easyeda/),
+exported to [`build/2026-09-20/`](build/2026-09-20/): Gerbers,
+[bill of materials](build/2026-09-20/bom.csv),
+[pick-and-place](build/2026-09-20/pick-and-place.csv), schematic PDF, STEP
+(millimetres) and DXF.
 Rules the layout has to keep, numbered and with their reasons:
 [LAYOUT-REQUIREMENTS.md](LAYOUT-REQUIREMENTS.md).
 Firmware: [origin89hq/firmware](https://github.com/origin89hq/firmware); its
@@ -41,6 +46,23 @@ but U8, the chip antenna, which has no model; CN9's model was not a STEP one
 at export time, so check its height against the JST drawing before trusting
 the enclosure clearance there. `board.dxf` holds every layer in one file.
 
+## Fabrication options
+
+Ordered at JLCPCB with these options, revision A and revision B alike, so the
+two are comparable on the bench:
+
+| Option | Value | Why |
+| --- | --- | --- |
+| Layers, thickness | 4, 1.6 mm | `A-04`, `A-01` |
+| Specify stackup | **`JLC04161H-7628`** | The differential pairs are drawn to this stackup's 120 Ω recipe: 0.132 mm (5.2 mil) traces at 0.203 mm (8 mil) spacing on L1 over the L2 ground (`A-05`, `A-08`, `A-09`). On any other 4-layer stackup the dielectric under L1 changes and those pairs are not 120 Ω |
+| Outer / inner copper | 1 oz / 0.5 oz | What that impedance table assumes |
+| Surface finish | ENIG, 1 U" | `A-07` |
+| Mask, silkscreen | Green, white | `A-07` |
+| Minimum via | 0.3 mm hole | The board's vias are 0.3048 mm drills on 0.508 mm pads |
+
+Order revision B with impedance control so the **achieved** figure comes back
+for `A-09`; the fabrication drawing is where it gets written down.
+
 The mounting holes on the fabricated boards carry no copper on any layer,
 read from the fab's own CAM: the two in the antenna band have nothing within
 4 mm, and the two at the bottom edge meet the ground pour at the A-02
@@ -51,3 +73,4 @@ keep-out radius, under solder mask. A-03 holds.
 | Revision | Export | What changed |
 | --- | --- | --- |
 | A | 2026-09-09 | First fabrication at JLCPCB, from this layout. Gerber check all clear. First bench session on 2026-09-14: both processors boot; SWD, both crystals, the RTC, FRAM, NOR, CAN in loopback, the analogue inputs, the watchdog, RS-485 between all three channels at 115200 8N1 and 9600 8N2, a DS18B20, the RTC across a power loss on its CR2032, and the ESP32's rail and UART to the MCU work. As built, the STM32 cannot program the ESP32 over serial, because the module's IO8 boot strap is unconnected; with IO8 held high by a hand-held wire to a 4.7 kΩ pull-up, the ESP32 entered serial download mode, took its first firmware through the STM32, and from then on restarted into download mode on command with no wire. The ESP32 received 11 Wi-Fi networks and 30 BLE devices. Board B's interlock could not be proven because board B's relay chains cannot close ([board B bench log](../generator-b/bench/2026-09-14.md)); brown-out is not yet measured, and a self-test crash at the ESP32 rail switch is open ([bench log](bench/2026-09-14.md)). Silkscreen check against the rev B rule `A-33`: fails, the silkscreen carries designators only (#12). |
+| B | 2026-09-20 | Not fabricated. Drawn and routed against the rev B rules in [LAYOUT-REQUIREMENTS.md](LAYOUT-REQUIREMENTS.md) (#54): an input chain for 12 V and 24 V banks with a 12 V buck (`A-20`, `A-20e`); current limiters on CN9's 12 V, the 4-pin RS-485 port's 5 V and the 1-Wire supply (`A-20b`, `A-20c`, `A-24`); an isolated listener on each of two VE.Direct ports, with an isolation gap in the copper (`A-38`); series resistors and clamps on the CN9 and selector lines (`A-34`, `A-36`); the ESP32 rail switch, EN supervisor and IO8 pull-up (`A-23`, `A-39`); a tank-loop supply (`A-20d`); a button (`A-42`); the RTC cell connector moved inboard (`A-25`); indicator current cut to 0.2–0.5 mA (`A-14`) and a red FAULT LED; pin, bus and board labels on the silkscreen (`A-33`), every one at least 1.0 mm tall with a 0.15 mm stroke, which is what JLCPCB prints. **No selector**: `CN10` and its network leave the board (`A-36`), `PB12` and `PB15` are spare, the mode moves to the button (origin89hq/firmware#60), and the freed corner takes 33 ground stitching vias. EasyEDA DRC 0 errors. Gerber check all clear, silkscreen strokes included; silkscreen check against `A-33` passes, no required label missing. This export has no fabrication-layer PDF. No bench work yet. |

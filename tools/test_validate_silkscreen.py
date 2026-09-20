@@ -20,11 +20,14 @@ BOTTOM = "Bottom-Silkscreen-Layer"
 
 
 def dxf(entities, blocks=()):
-    """Build a minimal DXF: (kind, layer, chunks) tuples; blocks go in BLOCKS."""
+    """Build a minimal DXF: (kind, layer, chunks[, height]) tuples, height 0.7 mm unless
+    given and omitted when None; blocks go in BLOCKS."""
     out = []
 
-    def emit(kind, layer, chunks):
+    def emit(kind, layer, chunks, height=0.7):
         out.extend(["  0", kind, "  8", layer])
+        if height is not None:
+            out.extend([" 40", repr(height)])
         if kind == "MTEXT":
             for c in chunks[:-1]:
                 out.extend(["  3", c])
@@ -52,6 +55,7 @@ class SilkscreenCheck(unittest.TestCase):
             "dxf_layers": [TOP, BOTTOM],
             "required": ["BANK IN", "TERM CAN", "RS485-1 RX", "NRST"],
             "required_patterns": ["^ORIGIN ?89\\b", "\\bREV B\\b"],
+            "min_text_height_mm": 0.7,
         }
 
     def tearDown(self):
@@ -86,7 +90,7 @@ class SilkscreenCheck(unittest.TestCase):
         ]))
         code, out = self.run_check(self.rules(), board)
         self.assertEqual(code, 0, out)
-        self.assertIn("PASS T-1: 0 missing", out[-1])
+        self.assertIn("PASS T-1: 0 missing, 0 under 0.7 mm", out[-1])
         self.assertTrue(any("7 text items" in line and "1 designators" in line for line in out), out[0])
         self.assertTrue(any("'BANK IN' x1" in line for line in out))
         self.assertTrue(any("'TERM CAN' x1" in line for line in out))
@@ -133,6 +137,10 @@ class SilkscreenCheck(unittest.TestCase):
             json.dumps({"silk_text": dict(self.spec, required_patterns=[" "])}),
             json.dumps({"silk_text": dict(self.spec, dxf_layers="Top-Silkscreen-Layer")}),
             json.dumps({"silk_text": dict(self.spec, required=["BANK IN", 7])}),
+            json.dumps({"silk_text": {k: v for k, v in self.spec.items() if k != "min_text_height_mm"}}),
+            json.dumps({"silk_text": dict(self.spec, min_text_height_mm=0)}),
+            json.dumps({"silk_text": dict(self.spec, min_text_height_mm="0.7")}),
+            json.dumps({"silk_text": dict(self.spec, min_text_height_mm=True)}),
             "[]",
             "{",
             json.dumps({"mounting_holes": {}}),
@@ -142,7 +150,33 @@ class SilkscreenCheck(unittest.TestCase):
             code, out = self.run_check(rules, board)
             self.assertEqual(code, 2, (raw, out))
             self.assertFalse(any(line.startswith("PASS") for line in out), (raw, out))
-        self.assertEqual(len(payloads), 11)
+        self.assertEqual(len(payloads), 15)
+
+    def test_text_under_the_minimum_height_fails_with_its_height(self):
+        board = self.board("small.dxf", dxf([
+            ("TEXT", TOP, ["BANK IN"]), ("TEXT", TOP, ["TERM CAN"]), ("TEXT", TOP, ["RS485-1 RX"]),
+            ("TEXT", BOTTOM, ["NRST"], 0.56), ("TEXT", BOTTOM, ["GND"], 0.56), ("TEXT", BOTTOM, ["GND"], 0.56),
+            ("TEXT", TOP, ["R45"], 0.69), ("TEXT", TOP, ["U7"], 0.7000017780035),
+            ("TEXT", TOP, ["ORIGIN 89 CTRL REV B 2026-09"], 0.84),
+        ]))
+        code, out = self.run_check(self.rules(), board)
+        self.assertEqual(code, 1)
+        self.assertIn("PASS T-1: 'NRST' x1", out)
+        self.assertIn("FAIL T-1: 'gnd' x2 0.56 mm high, under 0.7 mm", out)
+        self.assertIn("FAIL T-1: 'nrst' x1 0.56 mm high, under 0.7 mm", out)
+        self.assertIn("FAIL T-1: 'r45' x1 0.69 mm high, under 0.7 mm", out)
+        self.assertFalse(any("'u7'" in line for line in out), out)
+        self.assertIn("FAIL T-1: 0 missing, 4 under 0.7 mm", out[-1])
+
+    def test_text_with_no_recorded_height_fails(self):
+        board = self.board("noheight.dxf", dxf([
+            ("TEXT", TOP, ["BANK IN"]), ("TEXT", TOP, ["TERM CAN"]), ("TEXT", TOP, ["RS485-1 RX"]),
+            ("TEXT", TOP, ["NRST"]), ("MTEXT", TOP, ["ORIGIN 89 REV B"], None),
+        ]))
+        code, out = self.run_check(self.rules(), board)
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL T-1: 'origin 89 rev b' x1 no height recorded, under 0.7 mm", out)
+        self.assertIn("FAIL T-1: 0 missing, 1 under 0.7 mm", out[-1])
 
     def test_usage_exits_2(self):
         out = io.StringIO()
@@ -150,8 +184,9 @@ class SilkscreenCheck(unittest.TestCase):
             self.assertEqual(vs.main(["validate_silkscreen.py"]), 2)
 
     def test_repository_rule_file_loads(self):
-        rule, layers, required, patterns = vs.load_rules(REPO / "boards/controller-a/gerber-rules.json")
+        rule, layers, required, patterns, min_height = vs.load_rules(REPO / "boards/controller-a/gerber-rules.json")
         self.assertEqual(rule, "A-33")
+        self.assertEqual(min_height, 0.7)
         self.assertEqual(layers, [TOP, BOTTOM])
         self.assertGreater(len(required), 40)
         self.assertEqual(len(patterns), 3)

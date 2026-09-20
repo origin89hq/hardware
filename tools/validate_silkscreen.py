@@ -5,21 +5,32 @@ Usage:
 
     tools/validate_silkscreen.py <gerber-rules.json> <board.dxf>
 
-Exit 0 when every required label is present, 1 on any FAIL, 2 when the rule
-file is unreadable, has no usable `silk_text` entry, or the DXF carries no text
-on the named layers. Standard library only.
+Exit 0 when every required label is present and every text is tall enough,
+1 on any FAIL, 2 when the rule file is unreadable, has no usable `silk_text`
+entry, or the DXF carries no text on the named layers. Standard library only.
 
 The rule file's `silk_text` entry names the rule, the DXF layers to read, the
-labels that must each appear at least once, and regular expressions for text
-whose exact wording is free (the board name, revision and date). All three
-lists are required and non-empty:
+labels that must each appear at least once, regular expressions for text
+whose exact wording is free (the board name, revision and date), and the
+smallest text height the fab is asked to print. The three lists are required
+and non-empty, and the height a positive number of millimetres:
 
     "silk_text": {
       "rule": "A-33",
       "dxf_layers": ["Top-Silkscreen-Layer", "Bottom-Silkscreen-Layer"],
       "required": ["BANK IN", "RS485-1", ...],
-      "required_patterns": ["^ORIGIN ?89\\\\b", "\\\\bREV B\\\\b"]
+      "required_patterns": ["^ORIGIN ?89\\\\b", "\\\\bREV B\\\\b"],
+      "min_text_height_mm": 0.7
     }
+
+Every text on those layers, designators included, is held to the height. The
+DXF records a TEXT's printed height, not EasyEDA's font size: size 1.0 is
+0.70 mm there, and the 2026-09-19 controller Gerber prints it 0.71 mm tall.
+JLCPCB's standard minimum is 1.0 mm printed (0.8 mm on its high-precision
+process); the 0.70 mm in the controller's rule file is the height every
+designator on the fabricated revision A boards was printed at. A text with no
+recorded height fails, since nothing about it was checked. Stroke width is
+not in the DXF; `validate_gerbers.py` checks it on the silkscreen Gerber.
 
 A misspelt or missing key is a bad rule file and exits 2, not a check that
 passes with nothing verified. Its sibling `validate_gerbers.py` fails the same
@@ -53,7 +64,7 @@ DXF_UNICODE = re.compile(r"\\U\+([0-9A-Fa-f]{4})")
 MTEXT_TOGGLE = re.compile(r"\\[LlOoKk]")
 MTEXT_FORMAT = re.compile(r"\\[A-Za-z][^;\\]*;")
 TEXT_SYMBOLS = {"%%c": "\u00d8", "%%d": "\u00b0", "%%p": "\u00b1", "%%u": "", "%%o": ""}
-SPEC_KEYS = {"rule", "dxf_layers", "required", "required_patterns"}
+SPEC_KEYS = {"rule", "dxf_layers", "required", "required_patterns", "min_text_height_mm"}
 
 
 class RuleError(Exception):
@@ -61,7 +72,7 @@ class RuleError(Exception):
 
 
 def load_rules(path):
-    """Return (rule, layers, required, patterns) from the rule file, or raise RuleError."""
+    """Return (rule, layers, required, patterns, min_height) from the rule file, or raise RuleError."""
     try:
         rules = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -82,7 +93,10 @@ def load_rules(path):
         compiled = [re.compile(p, re.IGNORECASE) for p in patterns]
     except re.error as exc:
         raise RuleError(f"{path}: bad pattern: {exc}") from exc
-    return spec.get("rule", "silk"), layers, required, list(zip(patterns, compiled))
+    height = spec.get("min_text_height_mm")
+    if isinstance(height, bool) or not isinstance(height, (int, float)) or height <= 0:
+        raise RuleError(f"{path}: silk_text.min_text_height_mm must be a positive number of millimetres")
+    return spec.get("rule", "silk"), layers, required, list(zip(patterns, compiled)), float(height)
 
 
 def group_codes(path):
@@ -93,30 +107,36 @@ def group_codes(path):
 
 
 def texts_on_layers(path, layers):
-    """Return the decoded string of every TEXT and MTEXT entity on the given layers."""
+    """Return (decoded string, height in mm or None) for every TEXT and MTEXT entity on the given layers."""
     wanted = set(layers)
     found = []
     section = None
     entity = None
     layer = None
+    height = None
     chunks = []
 
     def flush():
         if section == "ENTITIES" and entity in ("TEXT", "MTEXT") and layer in wanted and chunks:
             text = decode("".join(chunks))
             if text.strip():
-                found.append(text)
+                found.append((text, height))
 
     for code, value in group_codes(path):
         if code == "0":
             flush()
-            entity, layer, chunks = value.strip(), None, []
+            entity, layer, height, chunks = value.strip(), None, None, []
             if entity == "ENDSEC":
                 section = None
         elif code == "2" and entity == "SECTION":
             section = value.strip()
         elif code == "8":
             layer = value.strip()
+        elif code == "40" and entity in ("TEXT", "MTEXT"):
+            try:
+                height = float(value)
+            except ValueError:
+                height = None
         elif entity in ("TEXT", "MTEXT") and code in ("1", "3"):
             chunks.append(value)
     flush()
@@ -145,7 +165,7 @@ def main(argv):
         return 2
 
     try:
-        rule, layers, required, patterns = load_rules(argv[1])
+        rule, layers, required, patterns, min_height = load_rules(argv[1])
     except RuleError as exc:
         print(exc)
         return 2
@@ -155,10 +175,11 @@ def main(argv):
         print(f"{dxf} is not a file")
         return 2
 
-    texts = texts_on_layers(dxf, layers)
-    if not texts:
+    found = texts_on_layers(dxf, layers)
+    if not found:
         print(f"{dxf} carries no TEXT or MTEXT on {layers}; wrong file or wrong layer names")
         return 2
+    texts = [t for t, _ in found]
 
     seen = Counter(normalise(t) for t in texts)
     designators = sum(n for t, n in seen.items() if DESIGNATOR.match(t.upper()))
@@ -188,8 +209,18 @@ def main(argv):
     if extras:
         print(f"INFO {rule}: text not in the required list: {', '.join(repr(t) for t in extras)}")
 
-    print(f"{'FAIL' if failures else 'PASS'} {rule}: {failures} missing")
-    return 1 if failures else 0
+    # 1 um of slack: EasyEDA writes 0.7 mm as 0.7000017...
+    small = Counter((normalise(t), h) for t, h in found if h is None or h < min_height - 0.001)
+    for (text, height), count in sorted(small.items(), key=lambda item: (item[0][1] or 0, item[0][0])):
+        size = "no height recorded" if height is None else f"{height:.2f} mm high"
+        print(f"FAIL {rule}: {text!r} x{count} {size}, under {min_height:g} mm")
+    short = sum(small.values())
+    if not short:
+        print(f"PASS {rule}: every text at least {min_height:g} mm high")
+
+    failed = failures or short
+    print(f"{'FAIL' if failed else 'PASS'} {rule}: {failures} missing, {short} under {min_height:g} mm")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
