@@ -46,6 +46,23 @@ but U8, the chip antenna, which has no model; CN9's model was not a STEP one
 at export time, so check its height against the JST drawing before trusting
 the enclosure clearance there. `board.dxf` holds every layer in one file.
 
+## Fabrication options
+
+Ordered at JLCPCB with these options, revision A and revision B alike, so the
+two are comparable on the bench:
+
+| Option | Value | Why |
+| --- | --- | --- |
+| Layers, thickness | 4, 1.6 mm | `A-04`, `A-01` |
+| Specify stackup | **`JLC04161H-7628`** | The differential pairs are drawn to this stackup's 120 Ω recipe: 0.132 mm (5.2 mil) traces at 0.203 mm (8 mil) spacing on L1 over the L2 ground (`A-05`, `A-08`, `A-09`). On any other 4-layer stackup the dielectric under L1 changes and those pairs are not 120 Ω |
+| Outer / inner copper | 1 oz / 0.5 oz | What that impedance table assumes |
+| Surface finish | ENIG, 1 U" | `A-07` |
+| Mask, silkscreen | Green, white | `A-07` |
+| Minimum via | 0.3 mm hole | The board's vias are 0.3048 mm drills on 0.508 mm pads |
+
+Order revision B with impedance control so the **achieved** figure comes back
+for `A-09`; the fabrication drawing is where it gets written down.
+
 The mounting holes on the fabricated boards carry no copper on any layer,
 read from the fab's own CAM: the two in the antenna band have nothing within
 4 mm, and the two at the bottom edge meet the ground pour at the A-02
