@@ -1,0 +1,32 @@
+# Adapted from origin89hq/engineering templates/dependabot.yml; see its docs/dependencies.md.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3 # zizmor: ignore[dependabot-cooldown] three days matches the Origin89 dependency policy
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci
+
+  # requirements-dev.txt is compiled by uv pip compile from requirements-dev.in;
+  # the uv ecosystem reruns it with the options recorded in the file header.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3 # zizmor: ignore[dependabot-cooldown] three days matches the Origin89 dependency policy
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope

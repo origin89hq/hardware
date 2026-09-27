@@ -39,7 +39,9 @@ Dependency updates start in `requirements-dev.in`; regenerate the hash-locked
 
 ```sh
 uv pip compile requirements-dev.in --python-version 3.12 \
-  --generate-hashes --universal --no-header -o requirements-dev.txt
+  --generate-hashes --universal -o requirements-dev.txt
 ```
+
+Keep the generated header: Dependabot reads the compile options from it.
 
 Update the export selected by `just gerbers` when filing a reviewed board revision.
