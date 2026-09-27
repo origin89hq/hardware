@@ -7,7 +7,7 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 3 # zizmor: ignore[dependabot-cooldown] three days matches the Origin89 dependency policy
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
@@ -22,7 +22,7 @@ updates:
     schedule:
       interval: weekly
     cooldown:
-      default-days: 3 # zizmor: ignore[dependabot-cooldown] three days matches the Origin89 dependency policy
+      default-days: 7
     groups:
       python:
         patterns: ["*"]
