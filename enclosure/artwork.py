@@ -223,7 +223,7 @@ STRIP_BANDS = {
     "front": ([("12V", None, -34.0), ("RS1", None, -21.0), ("RS2", None, -8.0),
                ("RS3", None, 5.0), ("CAN", None, 18.0), ("1W", None, 31.0)],
               "front, over the field connectors"),
-    "left": ([("SEL", None, 14.0), ("SNS", None, -14.5), ("TNK", None, -28.0)],
+    "left": ([("SNS", None, -14.5), ("TNK", None, -28.0)],
              "lid, left margin, this end toward the back"),
     "right": ([("1W", None, 14.0), ("VED", None, 0.0), ("LNK", None, -15.5), ("VED", None, -41.5)],
               "lid, right margin, this end toward the back"),

@@ -24,6 +24,7 @@
     ["top silk", "Gerber_TopSilkscreenLayer.GTO"],
     ["bottom silk", "Gerber_BottomSilkscreenLayer.GBO"]
   ],
+  "silk_min_stroke_mm": 0.15,
   "silk_text": {
     "rule": "A-33",
     "dxf_layers": ["Top-Silkscreen-Layer", "Bottom-Silkscreen-Layer"],
@@ -32,17 +33,17 @@
       "RS485-1", "RS485-2", "RS485-3", "A", "B", "GND", "5V",
       "CAN", "H", "L",
       "1-WIRE", "3V3", "DATA",
-      "SELECTOR", "AUTO", "MAN",
       "START BATT",
       "TANK", "24V", "SENSE",
       "VE.DIRECT 1", "VE.DIRECT 2", "RX", "TX",
-      "BOARD B", "BANK", "RUN", "KICK", "FB",
+      "BOARD B", "+12V", "RUN", "KICK", "FB",
       "RTC CELL",
       "SWD", "VDD", "SWDIO", "SWCLK", "NRST", "NC",
       "TERM RS485-1", "TERM RS485-2", "TERM RS485-3", "TERM CAN",
       "RS485-1 RX", "RS485-2 RX", "RS485-3 RX", "CAN RX", "STATUS", "FAULT",
       "PAIR"
     ],
-    "required_patterns": ["^ORIGIN ?89\\s+(CTRL|CONTROLLER)\\b", "\\bREV B\\b", "\\b20[2-9][0-9]-(0[1-9]|1[0-2])\\b"]
+    "required_patterns": ["^ORIGIN ?89\\s+(CTRL|CONTROLLER)\\b", "\\bREV B\\b", "\\b20[2-9][0-9]-(0[1-9]|1[0-2])\\b"],
+    "min_text_height_mm": 0.7
   }
 }
